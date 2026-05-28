@@ -1,0 +1,31 @@
+PRIMARY PALETTE
+1. Pure Black
+
+#000000
+
+Main background.
+
+2. Off White
+
+#F5F5F5
+
+Text/highlights.
+
+3. Dark Graphite
+
+#121212
+
+Secondary backgrounds/cards.
+
+ACCENT COLOUR
+Chrome/Silver
+
+#C0C0C0
+
+Use VERY sparingly:
+
+lines
+highlights
+buttons
+subtle glows
+reflections
