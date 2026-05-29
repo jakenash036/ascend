@@ -34,7 +34,7 @@ export async function GET(): Promise<Response> {
   }
 
   const webhookAddress = `${siteUrl}/api/webhooks/shopify`;
-  const endpoint = `https://${storeDomain}/admin/api/2024-01/webhooks.json`;
+  const endpoint = `https://${storeDomain}/admin/api/2026-01/webhooks.json`;
 
   const succeeded: string[] = [];
   const failed: string[] = [];
