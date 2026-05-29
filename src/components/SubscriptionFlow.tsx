@@ -61,14 +61,12 @@ export default function SubscriptionFlow({
 
   const handleJoin = () => {
     if (!validate()) return;
-    const planId = selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN;
-    const params = new URLSearchParams({
-      selling_plan: planId,
-      "attributes[discord]": discord,
-      "attributes[name]": name,
-      "attributes[email]": email,
-      "attributes[plan]": selectedPlan,
-    });
+    const params = new URLSearchParams();
+    params.set("selling_plan", selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN);
+    params.set("attributes[name]", name);
+    params.set("attributes[email]", email);
+    params.set("attributes[discord]", discord);
+    params.set("attributes[plan]", selectedPlan);
     window.location.href = `${STORE_URL}/cart/${VARIANT_ID}:1?${params.toString()}`;
   };
 
