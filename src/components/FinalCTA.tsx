@@ -1,6 +1,10 @@
 import CTAButton from "@/components/CTAButton";
 
-export default function FinalCTA() {
+interface FinalCTAProps {
+  onJoin: () => void;
+}
+
+export default function FinalCTA({ onJoin }: FinalCTAProps) {
   return (
     <section className="py-32 px-6 bg-[#0d0d0d] relative overflow-hidden">
       {/* Subtle radial glow */}
@@ -24,7 +28,7 @@ export default function FinalCTA() {
           relentless ambition.
         </p>
 
-        <CTAButton className="mt-2" />
+        <CTAButton className="mt-2" onClick={onJoin} />
 
         <div className="chrome-line w-16" aria-hidden="true" />
       </div>

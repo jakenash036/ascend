@@ -1,6 +1,12 @@
+"use client";
+
 import CTAButton from "@/components/CTAButton";
 
-export default function Hero() {
+interface HeroProps {
+  onJoin: () => void;
+}
+
+export default function Hero({ onJoin }: HeroProps) {
   return (
     <section className="relative flex flex-col items-center justify-center min-h-screen px-6 py-24 text-center overflow-hidden">
       {/* Subtle radial glow */}
@@ -32,7 +38,7 @@ export default function Hero() {
           operate at a level most people never reach.
         </p>
 
-        <CTAButton className="mt-4" />
+        <CTAButton className="mt-4" onClick={onJoin} />
       </div>
 
       {/* Bottom fade */}
