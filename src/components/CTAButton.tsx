@@ -6,7 +6,7 @@ interface CTAButtonProps {
 }
 
 export default function CTAButton({
-  label = "Join Ascend",
+  label = "Ascend",
   className = "",
 }: CTAButtonProps) {
   return (
@@ -14,7 +14,7 @@ export default function CTAButton({
       href={SHOPIFY_CHECKOUT_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-block px-8 py-4 bg-[#e8e8e3] text-[#0a0a0a] font-semibold tracking-widest uppercase text-sm rounded-none transition-all duration-200 hover:bg-white hover:shadow-[0_0_24px_rgba(192,192,192,0.25)] active:scale-[0.98] ${className}`}
+      className={`inline-block px-8 py-4 bg-[#e8e8e3] text-[#0a0a0a] font-semibold tracking-widest uppercase text-sm rounded-none transition-all duration-200 hover:bg-white hover:shadow-[0_0_24px_rgba(232,232,227,0.15)] ${className}`}
     >
       {label}
     </a>
