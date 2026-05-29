@@ -3,21 +3,24 @@ import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-interface ShopifySubscriptionPayload {
-  id: string;
-  status?: string;
-  customer_id?: string;
-  billing_policy?: {
-    interval: string;
-    interval_count: number;
-  };
+interface ShopifyLineItem {
+  title: string;
+  price: string;
 }
 
-interface ShopifyBillingAttemptPayload {
-  id: string;
-  subscription_contract_id?: string;
-  error_message?: string;
-  ready?: boolean;
+interface ShopifyCustomer {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+interface ShopifyOrder {
+  id: number;
+  email: string;
+  created_at: string;
+  customer: ShopifyCustomer;
+  line_items: ShopifyLineItem[];
 }
 
 function verifyHmac(rawBody: string, signature: string, secret: string): boolean {
@@ -29,6 +32,37 @@ function verifyHmac(rawBody: string, signature: string, secret: string): boolean
   }
 }
 
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
+}
+
+async function ensureTables(): Promise<void> {
+  const sql = getDb();
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      shopify_customer_id TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      shopify_order_id TEXT UNIQUE NOT NULL,
+      plan TEXT NOT NULL,
+      start_date TIMESTAMPTZ NOT NULL,
+      end_date TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+}
+
 export async function POST(req: Request): Promise<Response> {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
   if (!secret) {
@@ -37,92 +71,67 @@ export async function POST(req: Request): Promise<Response> {
 
   const signature = req.headers.get("x-shopify-hmac-sha256") ?? "";
   const topic = req.headers.get("x-shopify-topic") ?? "";
-  const activeTopics = new Set([
-    "subscription_contracts/create",
-    "subscription_contracts/update",
-    "subscription_billing_attempts/failure",
-    "subscription_billing_attempts/success",
-    "subscription_contracts/cancel",
-  ]);
 
   const rawBody = await req.text();
 
-  if (!rawBody) {
-    return new Response("Missing request body", { status: 400 });
-  }
-
   if (!verifyHmac(rawBody, signature, secret)) {
-    return new Response("Unauthorized", { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!activeTopics.has(topic)) {
-    return new Response("OK", { status: 200 });
+  if (topic !== "orders/create") {
+    return Response.json({ received: true }, { status: 200 });
   }
 
-  let payload: ShopifySubscriptionPayload | ShopifyBillingAttemptPayload;
+  let order: ShopifyOrder;
   try {
-    payload = JSON.parse(rawBody) as ShopifySubscriptionPayload | ShopifyBillingAttemptPayload;
+    order = JSON.parse(rawBody) as ShopifyOrder;
   } catch {
-    return new Response("Malformed JSON payload", { status: 400 });
+    return Response.json({ received: true }, { status: 200 });
   }
 
-  let subscriptionId: string | undefined;
-  let customerId: string | null = null;
+  const startDate = new Date(order.created_at);
+  let plan: string;
+  let endDate: Date;
 
-  let subscriptionActive: boolean;
+  const prices = order.line_items.map((item) => item.price);
 
-  if (topic === "subscription_contracts/create") {
-    subscriptionId = "id" in payload ? payload.id : undefined;
-    customerId = "customer_id" in payload ? (payload.customer_id ?? null) : null;
-    subscriptionActive = true;
-  } else if (topic === "subscription_contracts/update") {
-    subscriptionId = "id" in payload ? payload.id : undefined;
-    customerId = "customer_id" in payload ? (payload.customer_id ?? null) : null;
-
-    if (!("status" in payload) || !payload.status) {
-      return new Response("Missing subscription status in payload", { status: 400 });
-    }
-
-    const normalizedStatus = payload.status.toUpperCase();
-    if (normalizedStatus === "ACTIVE") {
-      subscriptionActive = true;
-    } else if (["PAUSED", "CANCELLED", "FAILED", "EXPIRED"].includes(normalizedStatus)) {
-      subscriptionActive = false;
-    } else {
-      return new Response("Unsupported subscription status in payload", { status: 400 });
-    }
-  } else if (topic === "subscription_contracts/cancel") {
-    subscriptionId = "id" in payload ? payload.id : undefined;
-    customerId = "customer_id" in payload ? (payload.customer_id ?? null) : null;
-    subscriptionActive = false;
-  } else if (topic === "subscription_billing_attempts/failure") {
-    subscriptionId = "subscription_contract_id" in payload ? payload.subscription_contract_id : undefined;
-    subscriptionActive = false;
-  } else if (topic === "subscription_billing_attempts/success") {
-    subscriptionId = "subscription_contract_id" in payload ? payload.subscription_contract_id : undefined;
-    subscriptionActive = true;
+  if (prices.includes("179.99")) {
+    plan = "yearly";
+    endDate = addDays(startDate, 365);
+  } else if (prices.includes("19.99")) {
+    plan = "monthly";
+    endDate = addDays(startDate, 30);
   } else {
-    return new Response("OK", { status: 200 });
-  }
-
-  if (!subscriptionId) {
-    return new Response("Missing subscription id in payload", { status: 400 });
+    console.warn(
+      `Shopify orders/create: unrecognised prices [${prices.join(", ")}] for order ${order.id} — defaulting to monthly`
+    );
+    plan = "unknown";
+    endDate = addDays(startDate, 30);
   }
 
   try {
+    await ensureTables();
+
     const sql = getDb();
 
+    const rows = await sql`
+      INSERT INTO users (shopify_customer_id, email, first_name, last_name)
+      VALUES (${String(order.customer.id)}, ${order.customer.email}, ${order.customer.first_name}, ${order.customer.last_name})
+      ON CONFLICT (shopify_customer_id) DO UPDATE SET email = EXCLUDED.email
+      RETURNING id
+    `;
+
+    const userId = (rows[0] as { id: number }).id;
+
     await sql`
-      UPDATE members
-      SET shopify_customer_id = COALESCE(${customerId}, shopify_customer_id),
-          subscription_active = ${subscriptionActive},
-          updated_at          = now()
-      WHERE shopify_subscription_id = ${subscriptionId}
+      INSERT INTO subscriptions (user_id, shopify_order_id, plan, start_date, end_date)
+      VALUES (${userId}, ${String(order.id)}, ${plan}, ${startDate.toISOString()}, ${endDate.toISOString()})
+      ON CONFLICT (shopify_order_id) DO NOTHING
     `;
   } catch (err) {
     console.error("Shopify webhook DB error:", err);
-    return new Response("Database error", { status: 500 });
+    return Response.json({ error: "Database error" }, { status: 500 });
   }
 
-  return new Response("OK", { status: 200 });
+  return Response.json({ received: true }, { status: 200 });
 }
