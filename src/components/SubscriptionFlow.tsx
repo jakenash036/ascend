@@ -80,15 +80,12 @@ export default function SubscriptionFlow({
     };
 
     if (isInIframe()) {
-      // Parent Shopify page (same domain as store) will POST to /cart/add.js
-      // with the selling_plan then redirect to /checkout. This is the only
-      // reliable way to attach a selling plan — cart permalink GETs don't work.
-      window.parent.postMessage(
-        { type: "ascend-cart-add", cartData },
-        STORE_URL
-      );
+      // Use "*" as target origin — using the store URL causes the browser to
+      // silently drop the message if the parent origin differs even slightly
+      // (e.g. www subdomain). The cart data contains no secrets so "*" is safe.
+      window.parent.postMessage({ type: "ascend-cart-add", cartData }, "*");
     } else {
-      // Running standalone (not embedded) — POST directly then redirect
+      // Running standalone — POST directly then redirect
       fetch(`${STORE_URL}/cart/clear.js`, { method: "POST" })
         .then(() =>
           fetch(`${STORE_URL}/cart/add.js`, {
