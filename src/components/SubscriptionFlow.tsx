@@ -9,9 +9,9 @@ interface SubscriptionFlowProps {
 
 type Step = "hidden" | "aura" | "panel";
 
-const VARIANT_ID = "56930326905210";
-const MONTHLY_PLAN = "711948927354";
-const YEARLY_PLAN = "711950795130";
+const VARIANT_ID = 56930326905210;
+const MONTHLY_PLAN = 711948927354;
+const YEARLY_PLAN = 711950795130;
 const STORE_URL = "https://ascendescapeaverage.com";
 
 // Staggered aura rings: [delay ms, border opacity, border width px]
@@ -68,29 +68,46 @@ export default function SubscriptionFlow({
 
     const sellingPlanId = selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN;
 
-    // Build query string with literal [ ] brackets — browsers encode these when
-    // set via window.location.href but the parent Shopify page navigating directly
-    // keeps them intact. Attributes are carried through for Discord capture.
-    const query = [
-      `selling_plan=${sellingPlanId}`,
-      `attributes[name]=${encodeURIComponent(name.trim())}`,
-      `attributes[email]=${encodeURIComponent(email.trim())}`,
-      `attributes[discord]=${encodeURIComponent(discord.trim())}`,
-      `attributes[plan]=${selectedPlan}`,
-    ].join("&");
-
-    const cartUrl = `${STORE_URL}/cart/${VARIANT_ID}:1?${query}`;
+    const cartData = {
+      variantId: VARIANT_ID,
+      sellingPlanId,
+      properties: {
+        name: name.trim(),
+        email: email.trim(),
+        discord: discord.trim(),
+        plan: selectedPlan,
+      },
+    };
 
     if (isInIframe()) {
-      // Tell the parent Shopify page to navigate — the parent is on the same
-      // ascendescapeaverage.com domain as the cart, so the session & selling_plan
-      // are handled correctly there rather than inside the sandboxed iframe.
+      // Parent Shopify page (same domain as store) will POST to /cart/add.js
+      // with the selling_plan then redirect to /checkout. This is the only
+      // reliable way to attach a selling plan — cart permalink GETs don't work.
       window.parent.postMessage(
-        { type: "ascend-checkout-redirect", url: cartUrl },
+        { type: "ascend-cart-add", cartData },
         STORE_URL
       );
     } else {
-      window.location.href = cartUrl;
+      // Running standalone (not embedded) — POST directly then redirect
+      fetch(`${STORE_URL}/cart/clear.js`, { method: "POST" })
+        .then(() =>
+          fetch(`${STORE_URL}/cart/add.js`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: cartData.variantId,
+              quantity: 1,
+              selling_plan: cartData.sellingPlanId,
+              properties: cartData.properties,
+            }),
+          })
+        )
+        .then(() => {
+          window.location.href = `${STORE_URL}/checkout`;
+        })
+        .catch((err) => {
+          console.error("Ascend cart error", err);
+        });
     }
   };
 
@@ -113,12 +130,11 @@ export default function SubscriptionFlow({
         animation: "overlay-emerge 500ms ease forwards",
       }}
     >
-      {/* ── Aura layer ── always present so rings continue glowing behind the panel */}
+      {/* ── Aura layer ── */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 flex items-center justify-center"
       >
-        {/* Central radial glow */}
         <div
           className="absolute"
           style={{
@@ -130,8 +146,6 @@ export default function SubscriptionFlow({
             animation: "aura-glow 1800ms cubic-bezier(0.2, 0, 0.6, 1) forwards",
           }}
         />
-
-        {/* Expanding concentric rings */}
         {RINGS.map(([delay, opacity, width], i) => (
           <div
             key={i}
@@ -147,7 +161,7 @@ export default function SubscriptionFlow({
         ))}
       </div>
 
-      {/* ── Aura phase: ASCEND wordmark flashes in silver light ── */}
+      {/* ── Aura phase ── */}
       {step === "aura" && (
         <div
           aria-hidden="true"
@@ -162,13 +176,12 @@ export default function SubscriptionFlow({
         </div>
       )}
 
-      {/* ── Panel phase: subscription form, centered in viewport ── */}
+      {/* ── Panel phase ── */}
       {step === "panel" && (
         <div
           className="relative z-10 w-full max-w-3xl mx-auto px-6 max-h-[90vh] overflow-y-auto"
           style={{ animation: "panel-rise 500ms cubic-bezier(0.2, 1, 0.3, 1) forwards" }}
         >
-          {/* Header row */}
           <div className="flex items-start justify-between mb-10">
             <div>
               <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">
@@ -188,12 +201,9 @@ export default function SubscriptionFlow({
             </button>
           </div>
 
-          {/* Chrome divider */}
           <div className="chrome-line mb-10" aria-hidden="true" />
 
-          {/* Plan cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-            {/* Monthly */}
             <button
               type="button"
               onClick={() => setSelectedPlan("monthly")}
@@ -209,7 +219,6 @@ export default function SubscriptionFlow({
               <p className="text-xs text-[#808080] tracking-wide">Billed monthly · Cancel anytime</p>
             </button>
 
-            {/* Yearly */}
             <button
               type="button"
               onClick={() => setSelectedPlan("yearly")}
@@ -229,7 +238,6 @@ export default function SubscriptionFlow({
             </button>
           </div>
 
-          {/* Input fields */}
           <div className="flex flex-col gap-4 mb-8">
             <div>
               <input
@@ -271,7 +279,6 @@ export default function SubscriptionFlow({
             </div>
           </div>
 
-          {/* Join CTA */}
           <button
             type="button"
             onClick={handleJoin}
