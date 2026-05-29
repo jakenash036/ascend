@@ -14,7 +14,6 @@ const MONTHLY_PLAN = 711948927354;
 const YEARLY_PLAN = 711950795130;
 const STORE_URL = "https://ascendescapeaverage.com";
 
-// Staggered aura rings: [delay ms, border opacity, border width px]
 const RINGS: [number, number, number][] = [
   [0,   0.90, 1.5],
   [190, 0.65, 1.0],
@@ -37,6 +36,8 @@ export default function SubscriptionFlow({
   const [email, setEmail] = useState("");
   const [discord, setDiscord] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [dotCount, setDotCount] = useState(0);
 
   useEffect(() => {
     if (visible) {
@@ -48,9 +49,19 @@ export default function SubscriptionFlow({
       document.body.style.overflow = "";
       setStep("hidden");
       setErrors({});
+      setLoading(false);
     }
     return () => { document.body.style.overflow = ""; };
   }, [visible]);
+
+  // Animate the dots on the loading button
+  useEffect(() => {
+    if (!loading) return;
+    const interval = setInterval(() => {
+      setDotCount((d) => (d + 1) % 4);
+    }, 350);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
@@ -65,6 +76,8 @@ export default function SubscriptionFlow({
 
   const handleJoin = () => {
     if (!validate()) return;
+    setLoading(true);
+    setDotCount(0);
 
     const sellingPlanId = selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN;
 
@@ -80,12 +93,8 @@ export default function SubscriptionFlow({
     };
 
     if (isInIframe()) {
-      // Use "*" as target origin — using the store URL causes the browser to
-      // silently drop the message if the parent origin differs even slightly
-      // (e.g. www subdomain). The cart data contains no secrets so "*" is safe.
       window.parent.postMessage({ type: "ascend-cart-add", cartData }, "*");
     } else {
-      // Running standalone — POST directly then redirect
       fetch(`${STORE_URL}/cart/clear.js`, { method: "POST" })
         .then(() =>
           fetch(`${STORE_URL}/cart/add.js`, {
@@ -104,6 +113,7 @@ export default function SubscriptionFlow({
         })
         .catch((err) => {
           console.error("Ascend cart error", err);
+          setLoading(false);
         });
     }
   };
@@ -114,8 +124,12 @@ export default function SubscriptionFlow({
     setDiscord("");
     setErrors({});
     setSelectedPlan("monthly");
+    setLoading(false);
     onClose();
   };
+
+  const dots = ".".repeat(dotCount);
+  const spaces = "\u00a0".repeat(3 - dotCount);
 
   if (step === "hidden") return null;
 
@@ -204,6 +218,7 @@ export default function SubscriptionFlow({
             <button
               type="button"
               onClick={() => setSelectedPlan("monthly")}
+              disabled={loading}
               className={`text-left p-6 bg-[#141414] border transition-colors duration-200 ${
                 selectedPlan === "monthly"
                   ? "border-[#c0c0c0]"
@@ -219,6 +234,7 @@ export default function SubscriptionFlow({
             <button
               type="button"
               onClick={() => setSelectedPlan("yearly")}
+              disabled={loading}
               className={`text-left p-6 bg-[#141414] border transition-colors duration-200 relative ${
                 selectedPlan === "yearly"
                   ? "border-[#c0c0c0]"
@@ -242,7 +258,8 @@ export default function SubscriptionFlow({
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200"
+                disabled={loading}
+                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
               />
               {errors.name && (
                 <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.name}</p>
@@ -255,7 +272,8 @@ export default function SubscriptionFlow({
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200"
+                disabled={loading}
+                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
               />
               {errors.email && (
                 <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.email}</p>
@@ -268,7 +286,8 @@ export default function SubscriptionFlow({
                 placeholder="Discord username (e.g. jake#1234)"
                 value={discord}
                 onChange={(e) => setDiscord(e.target.value)}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200"
+                disabled={loading}
+                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
               />
               {errors.discord && (
                 <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.discord}</p>
@@ -279,10 +298,29 @@ export default function SubscriptionFlow({
           <button
             type="button"
             onClick={handleJoin}
-            className="w-full px-8 py-4 bg-[#e8e8e3] text-[#0a0a0a] font-semibold tracking-widest uppercase text-sm rounded-none transition-all duration-200 hover:bg-white"
+            disabled={loading}
+            className="w-full px-8 py-4 bg-[#e8e8e3] text-[#0a0a0a] font-semibold tracking-widest uppercase text-sm rounded-none transition-all duration-200 hover:bg-white disabled:cursor-not-allowed"
+            style={
+              loading
+                ? {
+                    background:
+                      "linear-gradient(90deg, #c0c0c0 0%, #e8e8e3 40%, #ffffff 60%, #c0c0c0 100%)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer-slide 1.2s linear infinite",
+                  }
+                : {}
+            }
           >
-            Join Ascend
+            {loading ? `ASCENDING${dots}${spaces}` : "JOIN ASCEND"}
           </button>
+
+          {/* Shimmer keyframe injected inline */}
+          <style>{`
+            @keyframes shimmer-slide {
+              0%   { background-position: 200% center; }
+              100% { background-position: -200% center; }
+            }
+          `}</style>
         </div>
       )}
     </div>
