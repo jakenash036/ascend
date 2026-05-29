@@ -30,7 +30,7 @@ export default function SubscriptionFlow({
   useEffect(() => {
     if (visible) {
       setStep("animating");
-      const timer = setTimeout(() => setStep("panel"), 700);
+      const timer = setTimeout(() => setStep("panel"), 1400);
       return () => clearTimeout(timer);
     } else {
       setStep("hidden");
@@ -75,23 +75,17 @@ export default function SubscriptionFlow({
 
   return (
     <>
-      {/* Aura pulse overlay */}
+      {/* Ascend transport overlay — beam shoots up, floods screen, fades */}
       {step === "animating" && (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
-        >
-          <div
-            style={{
-              animation: "aura-pulse 700ms ease-out forwards",
-              width: "100vmax",
-              height: "100vmax",
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle, rgba(192,192,192,0.22) 0%, rgba(192,192,192,0.08) 35%, transparent 65%)",
-            }}
-          />
-        </div>
+          className="pointer-events-none fixed inset-0 z-50"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(10,10,10,0) 0%, rgba(140,140,135,0.55) 20%, rgba(200,200,195,0.92) 40%, rgba(232,232,227,1) 58%, rgba(255,255,255,1) 70%, rgba(232,232,227,0.96) 85%, rgba(180,180,175,0.6) 100%)",
+            animation: "ascend-transport 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
+          }}
+        />
       )}
 
       {/* Subscription panel — slides in after aura */}
