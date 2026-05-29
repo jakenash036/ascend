@@ -8,6 +8,7 @@
  * To connect Discord automation: add webhook call on successful Shopify webhook
  * To connect Neon DB: add a server action / API route in src/app/api/
  */
+import TopBar from "@/components/TopBar";
 import Hero from "@/components/Hero";
 import WhatAscendIs from "@/components/WhatAscendIs";
 import TheFramework from "@/components/TheFramework";
@@ -17,6 +18,7 @@ import FinalCTA from "@/components/FinalCTA";
 export default function AscendEmbed() {
   return (
     <div className="w-full min-h-screen bg-[#0a0a0a] text-[#e8e8e3]">
+      <TopBar />
       <Hero />
       <WhatAscendIs />
       <TheFramework />
