@@ -5,12 +5,19 @@ export const dynamic = "force-dynamic";
 
 interface ShopifySubscriptionPayload {
   id: string;
-  customer?: {
-    id: string;
-    email: string;
-  };
-  email?: string;
   status?: string;
+  customer_id?: string;
+  billing_policy?: {
+    interval: string;
+    interval_count: number;
+  };
+}
+
+interface ShopifyBillingAttemptPayload {
+  id: string;
+  subscription_contract_id?: string;
+  error_message?: string;
+  ready?: boolean;
 }
 
 function verifyHmac(rawBody: string, signature: string, secret: string): boolean {
@@ -30,6 +37,13 @@ export async function POST(req: Request): Promise<Response> {
 
   const signature = req.headers.get("x-shopify-hmac-sha256") ?? "";
   const topic = req.headers.get("x-shopify-topic") ?? "";
+  const activeTopics = new Set([
+    "subscription_contracts/create",
+    "subscription_contracts/update",
+    "subscription_billing_attempts/failure",
+    "subscription_billing_attempts/success",
+    "subscription_contracts/cancel",
+  ]);
 
   const rawBody = await req.text();
 
@@ -41,60 +55,70 @@ export async function POST(req: Request): Promise<Response> {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  let payload: ShopifySubscriptionPayload;
+  if (!activeTopics.has(topic)) {
+    return new Response("OK", { status: 200 });
+  }
+
+  let payload: ShopifySubscriptionPayload | ShopifyBillingAttemptPayload;
   try {
-    payload = JSON.parse(rawBody) as ShopifySubscriptionPayload;
+    payload = JSON.parse(rawBody) as ShopifySubscriptionPayload | ShopifyBillingAttemptPayload;
   } catch {
     return new Response("Malformed JSON payload", { status: 400 });
   }
 
-  const subscriptionId = payload.id;
-  const customerId = payload.customer?.id ?? null;
-  const email = payload.customer?.email ?? payload.email ?? null;
+  let subscriptionId: string | undefined;
+  let customerId: string | null = null;
+
+  let subscriptionActive: boolean;
+
+  if (topic === "subscription_contracts/create") {
+    subscriptionId = "id" in payload ? payload.id : undefined;
+    customerId = "customer_id" in payload ? (payload.customer_id ?? null) : null;
+    subscriptionActive = true;
+  } else if (topic === "subscription_contracts/update") {
+    subscriptionId = "id" in payload ? payload.id : undefined;
+    customerId = "customer_id" in payload ? (payload.customer_id ?? null) : null;
+
+    if (!("status" in payload) || !payload.status) {
+      return new Response("Missing subscription status in payload", { status: 400 });
+    }
+
+    const normalizedStatus = payload.status.toUpperCase();
+    if (normalizedStatus === "ACTIVE") {
+      subscriptionActive = true;
+    } else if (["PAUSED", "CANCELLED", "FAILED", "EXPIRED"].includes(normalizedStatus)) {
+      subscriptionActive = false;
+    } else {
+      return new Response("Unsupported subscription status in payload", { status: 400 });
+    }
+  } else if (topic === "subscription_contracts/cancel") {
+    subscriptionId = "id" in payload ? payload.id : undefined;
+    customerId = "customer_id" in payload ? (payload.customer_id ?? null) : null;
+    subscriptionActive = false;
+  } else if (topic === "subscription_billing_attempts/failure") {
+    subscriptionId = "subscription_contract_id" in payload ? payload.subscription_contract_id : undefined;
+    subscriptionActive = false;
+  } else if (topic === "subscription_billing_attempts/success") {
+    subscriptionId = "subscription_contract_id" in payload ? payload.subscription_contract_id : undefined;
+    subscriptionActive = true;
+  } else {
+    return new Response("OK", { status: 200 });
+  }
 
   if (!subscriptionId) {
     return new Response("Missing subscription id in payload", { status: 400 });
   }
 
-  let subscriptionActive: boolean;
-
-  if (topic === "subscriptions/create") {
-    subscriptionActive = true;
-  } else if (topic === "subscriptions/update") {
-    // Shopify subscription statuses that indicate an active subscription
-    const activeStatuses = new Set(["active", "pending"]);
-    subscriptionActive = activeStatuses.has((payload.status ?? "").toLowerCase());
-  } else if (topic === "subscriptions/cancel" || topic === "subscription_billing_attempts/failure") {
-    subscriptionActive = false;
-  } else {
-    // Unrecognised topic — acknowledge without acting
-    return new Response("OK", { status: 200 });
-  }
-
   try {
     const sql = getDb();
 
-    if (email) {
-      // Upsert by email when we have it
-      await sql`
-        INSERT INTO members (email, shopify_customer_id, shopify_subscription_id, subscription_active, updated_at)
-        VALUES (${email}, ${customerId}, ${subscriptionId}, ${subscriptionActive}, now())
-        ON CONFLICT (email) DO UPDATE SET
-          shopify_customer_id    = EXCLUDED.shopify_customer_id,
-          shopify_subscription_id = EXCLUDED.shopify_subscription_id,
-          subscription_active    = EXCLUDED.subscription_active,
-          updated_at             = now()
-      `;
-    } else {
-      // No email — update by subscription id if the row already exists
-      await sql`
-        UPDATE members
-        SET shopify_customer_id    = ${customerId},
-            subscription_active    = ${subscriptionActive},
-            updated_at             = now()
-        WHERE shopify_subscription_id = ${subscriptionId}
-      `;
-    }
+    await sql`
+      UPDATE members
+      SET shopify_customer_id = COALESCE(${customerId}, shopify_customer_id),
+          subscription_active = ${subscriptionActive},
+          updated_at          = now()
+      WHERE shopify_subscription_id = ${subscriptionId}
+    `;
   } catch (err) {
     console.error("Shopify webhook DB error:", err);
     return new Response("Database error", { status: 500 });
