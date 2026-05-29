@@ -1,9 +1,11 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
-  shopify_customer_id TEXT UNIQUE NOT NULL,
+  shopify_customer_id TEXT UNIQUE,
   email TEXT UNIQUE NOT NULL,
   first_name TEXT,
   last_name TEXT,
+  discord TEXT,
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'active' | 'cancelled'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -32,7 +32,8 @@ export default function SubscriptionFlow({
 }: SubscriptionFlowProps) {
   const [step, setStep] = useState<Step>("hidden");
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("monthly");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [discord, setDiscord] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,7 +66,8 @@ export default function SubscriptionFlow({
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
-    if (!name.trim()) next.name = "Name is required";
+    if (!firstName.trim()) next.firstName = "First name is required";
+    if (!lastName.trim()) next.lastName = "Last name is required";
     if (!email.trim()) next.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       next.email = "Invalid email address";
@@ -74,10 +76,27 @@ export default function SubscriptionFlow({
     return Object.keys(next).length === 0;
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!validate()) return;
     setLoading(true);
     setDotCount(0);
+
+    // Save member data to DB before checkout (non-blocking on failure)
+    try {
+      await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          discord: discord.trim(),
+          plan: selectedPlan,
+        }),
+      });
+    } catch (err) {
+      console.error("Pre-checkout submit error:", err);
+    }
 
     const sellingPlanId = selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN;
 
@@ -85,7 +104,8 @@ export default function SubscriptionFlow({
       variantId: VARIANT_ID,
       sellingPlanId,
       properties: {
-        name: name.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         email: email.trim(),
         discord: discord.trim(),
         plan: selectedPlan,
@@ -119,7 +139,8 @@ export default function SubscriptionFlow({
   };
 
   const handleClose = () => {
-    setName("");
+    setFirstName("");
+    setLastName("");
     setEmail("");
     setDiscord("");
     setErrors({});
@@ -252,18 +273,33 @@ export default function SubscriptionFlow({
           </div>
 
           <div className="flex flex-col gap-4 mb-8">
-            <div>
-              <input
-                type="text"
-                placeholder="Full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
-              />
-              {errors.name && (
-                <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.name}</p>
-              )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
+                />
+                {errors.firstName && (
+                  <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.firstName}</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
+                />
+                {errors.lastName && (
+                  <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.lastName}</p>
+                )}
+              </div>
             </div>
 
             <div>
