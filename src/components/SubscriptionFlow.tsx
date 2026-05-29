@@ -23,6 +23,10 @@ const RINGS: [number, number, number][] = [
   [850, 0.14, 0.5],
 ];
 
+function isInIframe(): boolean {
+  try { return window.self !== window.top; } catch { return true; }
+}
+
 export default function SubscriptionFlow({
   visible,
   onClose,
@@ -62,10 +66,11 @@ export default function SubscriptionFlow({
   const handleJoin = () => {
     if (!validate()) return;
 
-    // IMPORTANT: Shopify cart attributes require literal square brackets in the URL.
-    // URLSearchParams encodes [ and ] as %5B and %5D which breaks Shopify's
-    // selling_plan parsing — so we build the query string manually.
     const sellingPlanId = selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN;
+
+    // Build query string with literal [ ] brackets — browsers encode these when
+    // set via window.location.href but the parent Shopify page navigating directly
+    // keeps them intact. Attributes are carried through for Discord capture.
     const query = [
       `selling_plan=${sellingPlanId}`,
       `attributes[name]=${encodeURIComponent(name.trim())}`,
@@ -74,7 +79,19 @@ export default function SubscriptionFlow({
       `attributes[plan]=${selectedPlan}`,
     ].join("&");
 
-    window.location.href = `${STORE_URL}/cart/${VARIANT_ID}:1?${query}`;
+    const cartUrl = `${STORE_URL}/cart/${VARIANT_ID}:1?${query}`;
+
+    if (isInIframe()) {
+      // Tell the parent Shopify page to navigate — the parent is on the same
+      // ascendescapeaverage.com domain as the cart, so the session & selling_plan
+      // are handled correctly there rather than inside the sandboxed iframe.
+      window.parent.postMessage(
+        { type: "ascend-checkout-redirect", url: cartUrl },
+        STORE_URL
+      );
+    } else {
+      window.location.href = cartUrl;
+    }
   };
 
   const handleClose = () => {
