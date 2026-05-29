@@ -61,13 +61,20 @@ export default function SubscriptionFlow({
 
   const handleJoin = () => {
     if (!validate()) return;
-    const params = new URLSearchParams();
-    params.set("selling_plan", selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN);
-    params.set("attributes[name]", name);
-    params.set("attributes[email]", email);
-    params.set("attributes[discord]", discord);
-    params.set("attributes[plan]", selectedPlan);
-    window.location.href = `${STORE_URL}/cart/${VARIANT_ID}:1?${params.toString()}`;
+
+    // IMPORTANT: Shopify cart attributes require literal square brackets in the URL.
+    // URLSearchParams encodes [ and ] as %5B and %5D which breaks Shopify's
+    // selling_plan parsing — so we build the query string manually.
+    const sellingPlanId = selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN;
+    const query = [
+      `selling_plan=${sellingPlanId}`,
+      `attributes[name]=${encodeURIComponent(name.trim())}`,
+      `attributes[email]=${encodeURIComponent(email.trim())}`,
+      `attributes[discord]=${encodeURIComponent(discord.trim())}`,
+      `attributes[plan]=${selectedPlan}`,
+    ].join("&");
+
+    window.location.href = `${STORE_URL}/cart/${VARIANT_ID}:1?${query}`;
   };
 
   const handleClose = () => {
@@ -213,7 +220,7 @@ export default function SubscriptionFlow({
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200 rounded-none"
+                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200"
               />
               {errors.name && (
                 <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.name}</p>
@@ -226,7 +233,7 @@ export default function SubscriptionFlow({
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200 rounded-none"
+                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200"
               />
               {errors.email && (
                 <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.email}</p>
@@ -239,7 +246,7 @@ export default function SubscriptionFlow({
                 placeholder="Discord username (e.g. jake#1234)"
                 value={discord}
                 onChange={(e) => setDiscord(e.target.value)}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200 rounded-none"
+                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-widest uppercase outline-none transition-colors duration-200"
               />
               {errors.discord && (
                 <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.discord}</p>
@@ -251,7 +258,7 @@ export default function SubscriptionFlow({
           <button
             type="button"
             onClick={handleJoin}
-            className="w-full px-8 py-4 bg-[#e8e8e3] text-[#0a0a0a] font-semibold tracking-widest uppercase text-sm rounded-none transition-all duration-200 hover:bg-white hover:shadow-[0_0_24px_rgba(232,232,227,0.15)]"
+            className="w-full px-8 py-4 bg-[#e8e8e3] text-[#0a0a0a] font-semibold tracking-widest uppercase text-sm rounded-none transition-all duration-200 hover:bg-white"
           >
             Join Ascend
           </button>
