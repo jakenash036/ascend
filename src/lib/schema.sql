@@ -18,5 +18,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   plan TEXT NOT NULL, -- 'monthly' or 'yearly'
   start_date TIMESTAMPTZ NOT NULL,
   end_date TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'cancelled' | 'expired'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

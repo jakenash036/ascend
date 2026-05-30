@@ -18,6 +18,7 @@ interface SubRow {
   plan: string;
   start_date: string;
   end_date: string;
+  status: string;
 }
 
 function formatDate(iso: string): string {
@@ -49,7 +50,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const subs = await sql`
-    SELECT plan, start_date, end_date
+    SELECT plan, start_date, end_date, status
     FROM subscriptions
     WHERE user_id = ${user.id}
     ORDER BY created_at DESC
@@ -63,8 +64,8 @@ export default async function DashboardPage() {
   type MemberState = "active" | "expired" | "cancelled" | "none";
   let memberState: MemberState = "none";
   if (sub) {
-    if (user.status === "cancelled") memberState = "cancelled";
-    else if (isExpired(sub.end_date)) memberState = "expired";
+    if (sub.status === "cancelled" || user.status === "cancelled") memberState = "cancelled";
+    else if (sub.status === "expired" || isExpired(sub.end_date)) memberState = "expired";
     else memberState = "active";
   }
 
@@ -125,6 +126,13 @@ export default async function DashboardPage() {
                     <span className="text-xs text-[#808080] tracking-wide">Renews</span>
                     <span className="text-xs text-[#e8e8e3] tracking-wide">{formatDate(sub.end_date)}</span>
                   </div>
+                  <a
+                    href="https://account.ascendescapeaverage.com/pages/6971b1a1-27f6-4c27-b8b0-3009fd3b921d"
+                    target="_top"
+                    className="mt-2 w-full px-4 py-3 border border-[#2a2a2a] hover:border-[#c0c0c0] text-[#808080] hover:text-[#e8e8e3] text-xs font-semibold tracking-widest uppercase text-center transition-colors duration-200"
+                  >
+                    Manage Subscription
+                  </a>
                 </>
               )}
 
