@@ -5,7 +5,8 @@ export default function TopBar() {
         Ascend
       </span>
       <a
-        href="/login"
+        href="https://ascendescapeaverage.com/pages/dashboard"
+        target="_top"
         className="text-xs tracking-[0.3em] uppercase text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200"
       >
         Sign In
