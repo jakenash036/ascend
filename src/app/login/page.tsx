@@ -22,7 +22,7 @@ export default function LoginPage() {
       } else {
         // After login, navigate the top window back to the Shopify homepage.
         // The iframe will reload and show the dashboard since the session cookie is now set.
-        const dest = "https://ascendescapeaverage.com";
+        const dest = "https://ascendescapeaverage.com/pages/dashboard";
         if (typeof window !== "undefined") {
           if (window.top && window.top !== window) {
             window.top.location.href = dest;
