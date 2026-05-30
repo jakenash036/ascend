@@ -159,6 +159,7 @@ export default async function DashboardPage() {
               {!user.discord_id && (
                 <a
                   href={`${APP_URL}/api/discord/link`}
+                  target="_top"
                   className="mt-2 w-full px-4 py-3 border border-[#2a2a2a] hover:border-[#c0c0c0] text-[#c0c0c0] hover:text-[#e8e8e3] text-xs font-semibold tracking-widest uppercase text-center transition-colors duration-200"
                 >
                   Link Discord
