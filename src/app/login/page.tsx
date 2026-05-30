@@ -20,11 +20,11 @@ export default function LoginPage() {
         setError(err);
         setLoading(false);
       } else {
-        // After login, navigate the top window back to the Shopify homepage.
-        // The iframe will reload and show the dashboard since the session cookie is now set.
-        const dest = "https://ascendescapeaverage.com/pages/dashboard";
+        // Redirect the full browser window (top) to the dashboard on Vercel directly.
+        // Avoids all iframe/third-party cookie issues.
+        const dest = "https://ascend-drab-one.vercel.app/dashboard";
         if (typeof window !== "undefined") {
-          if (window.top && window.top !== window) {
+          if (window.top) {
             window.top.location.href = dest;
           } else {
             window.location.href = dest;
@@ -41,6 +41,7 @@ export default function LoginPage() {
       <div className="w-full flex items-center justify-between px-6 py-3 border-b border-[#2a2a2a]">
         <a
           href="https://ascendescapeaverage.com"
+          target="_top"
           className="text-xs tracking-[0.4em] uppercase text-[#808080] font-medium hover:text-[#e8e8e3] transition-colors duration-200"
         >
           Ascend
@@ -111,6 +112,7 @@ export default function LoginPage() {
             Not a member?{" "}
             <a
               href="https://ascendescapeaverage.com"
+              target="_top"
               className="text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200"
             >
               Join Ascend
