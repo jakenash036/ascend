@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { redirect } from "next/navigation";
 import SignOutButton from "./SignOutButton";
+import AdminPanel from "./AdminPanel";
 
 interface UserRow {
   id: number;
@@ -11,6 +12,7 @@ interface UserRow {
   discord: string | null;
   discord_id: string | null;
   status: string;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -42,7 +44,7 @@ export default async function DashboardPage() {
 
   const sql = getDb();
   const users = await sql`
-    SELECT id, email, first_name, last_name, discord, discord_id, status, created_at
+    SELECT id, email, first_name, last_name, discord, discord_id, status, is_admin, created_at
     FROM users
     WHERE id = ${session.user.id}
   `;
@@ -92,15 +94,16 @@ export default async function DashboardPage() {
         <SignOutButton />
       </div>
 
-      <main className="flex-1 w-full max-w-3xl mx-auto px-6 py-14">
-        <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">Member Dashboard</p>
-        <h1 className="text-2xl font-semibold text-[#e8e8e3] tracking-tight mb-8">
-          Welcome back{firstName ? `, ${firstName}` : ""}.
-        </h1>
+      <main className="flex-1 w-full px-6 py-14">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">Member Dashboard</p>
+          <h1 className="text-2xl font-semibold text-[#e8e8e3] tracking-tight mb-8">
+            Welcome back{firstName ? `, ${firstName}` : ""}.
+          </h1>
 
-        <div className="chrome-line mb-10" aria-hidden="true" />
+          <div className="chrome-line mb-10" aria-hidden="true" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Membership card */}
           <div className="bg-[#141414] border border-[#2a2a2a] p-6">
             <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">Membership</p>
@@ -240,7 +243,17 @@ export default async function DashboardPage() {
               </div>
             </div>
           </div>
+          </div>
         </div>
+
+        {user.is_admin && (
+          <div className="mt-12 w-full max-w-6xl mx-auto">
+            <div className="chrome-line mb-10" aria-hidden="true" />
+            <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">Admin</p>
+            <h2 className="text-xl font-semibold text-[#e8e8e3] mb-8">Member Management</h2>
+            <AdminPanel />
+          </div>
+        )}
       </main>
     </div>
   );

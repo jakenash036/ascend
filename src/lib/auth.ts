@@ -32,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const sql = getDb();
         const users = await sql`
-          SELECT id, email, first_name, last_name, password_hash, status
+          SELECT id, email, first_name, last_name, password_hash, status, is_admin
           FROM users
           WHERE email = ${email.toLowerCase().trim()}
         `;
@@ -46,6 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: String(user.id),
           email: String(user.email),
           name: `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim(),
+          isAdmin: Boolean(user.is_admin),
         };
       },
     }),
@@ -53,10 +54,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user?.id) token.userId = user.id;
+      if (user && "isAdmin" in user) token.isAdmin = (user as { isAdmin?: boolean }).isAdmin;
       return token;
     },
     async session({ session, token }) {
       if (token.userId) session.user.id = token.userId as string;
+      session.user.isAdmin = token.isAdmin as boolean | undefined;
       return session;
     },
   },
