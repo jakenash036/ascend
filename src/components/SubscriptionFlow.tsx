@@ -35,9 +35,10 @@ export default function SubscriptionFlow({
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [discord, setDiscord] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [dotCount, setDotCount] = useState(0);
@@ -57,7 +58,6 @@ export default function SubscriptionFlow({
     return () => { document.body.style.overflow = ""; };
   }, [visible]);
 
-  // Animate the dots on the loading button
   useEffect(() => {
     if (!loading) return;
     const interval = setInterval(() => {
@@ -73,7 +73,6 @@ export default function SubscriptionFlow({
     if (!email.trim()) next.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       next.email = "Invalid email address";
-    if (!discord.trim()) next.discord = "Discord username is required";
     if (!password) next.password = "Password is required";
     else if (password.length < 8) next.password = "Password must be at least 8 characters";
     if (!confirmPassword) next.confirmPassword = "Please confirm your password";
@@ -87,7 +86,6 @@ export default function SubscriptionFlow({
     setLoading(true);
     setDotCount(0);
 
-    // Save member data to DB before checkout (blocks on failure — password must be saved)
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
@@ -96,15 +94,17 @@ export default function SubscriptionFlow({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           email: email.trim(),
-          discord: discord.trim(),
           password,
           plan: selectedPlan,
         }),
       });
-      if (!res.ok) throw new Error("Submit failed");
-    } catch (err) {
-      console.error("Pre-checkout submit error:", err);
-      setErrors({ form: "Something went wrong saving your details. Please try again." });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Submit failed");
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setErrors({ form: message });
       setLoading(false);
       return;
     }
@@ -118,7 +118,6 @@ export default function SubscriptionFlow({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        discord: discord.trim(),
         plan: selectedPlan,
       },
     };
@@ -153,7 +152,6 @@ export default function SubscriptionFlow({
     setFirstName("");
     setLastName("");
     setEmail("");
-    setDiscord("");
     setPassword("");
     setConfirmPassword("");
     setErrors({});
@@ -161,6 +159,20 @@ export default function SubscriptionFlow({
     setLoading(false);
     onClose();
   };
+
+  const EyeIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  );
+  const EyeOffIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  );
 
   const dots = ".".repeat(dotCount);
   const spaces = "\u00a0".repeat(3 - dotCount);
@@ -329,43 +341,49 @@ export default function SubscriptionFlow({
               )}
             </div>
 
-            <div>
-              <input
-                type="text"
-                placeholder="Discord username (e.g. jake#1234)"
-                value={discord}
-                onChange={(e) => setDiscord(e.target.value)}
-                disabled={loading}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
-              />
-              {errors.discord && (
-                <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.discord}</p>
-              )}
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 pr-10 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#404040] hover:text-[#808080] transition-colors duration-200"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.password}</p>
                 )}
               </div>
               <div>
-                <input
-                  type="password"
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={loading}
-                  className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirm ? "text" : "password"}
+                    placeholder="Confirm password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                    className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 pr-10 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#404040] hover:text-[#808080] transition-colors duration-200"
+                    aria-label={showConfirm ? "Hide password" : "Show password"}
+                  >
+                    {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
                 {errors.confirmPassword && (
                   <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.confirmPassword}</p>
                 )}
@@ -396,7 +414,6 @@ export default function SubscriptionFlow({
             {loading ? `ASCENDING${dots}${spaces}` : "JOIN ASCEND"}
           </button>
 
-          {/* Shimmer keyframe injected inline */}
           <style>{`
             @keyframes shimmer-slide {
               0%   { background-position: 200% center; }
