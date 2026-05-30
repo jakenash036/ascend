@@ -18,6 +18,20 @@ function verifyShopifyWebhook(body: string, hmacHeader: string): boolean {
   }
 }
 
+async function removeDiscordRole(discordId: string): Promise<void> {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const roleId = process.env.DISCORD_ROLE_ID;
+  if (!botToken || !guildId || !roleId || !discordId) return;
+  await fetch(
+    `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bot ${botToken}` },
+    }
+  );
+}
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const hmac = req.headers.get("x-shopify-hmac-sha256") ?? "";
@@ -50,7 +64,6 @@ export async function POST(req: NextRequest) {
 
       const sql = getDb();
 
-      // Update user to active
       const result = await sql`
         UPDATE users
         SET status = 'active',
@@ -60,7 +73,6 @@ export async function POST(req: NextRequest) {
       `;
 
       if (result.length === 0) {
-        // User not found — create them from order data (edge case: checkout without form)
         const firstName = order.customer?.first_name ?? "";
         const lastName = order.customer?.last_name ?? "";
         await sql`
@@ -72,7 +84,6 @@ export async function POST(req: NextRequest) {
 
       const user = result[0] ?? (await sql`SELECT id FROM users WHERE email = ${email}`)[0];
 
-      // Create subscription record
       await sql`
         INSERT INTO subscriptions (user_id, shopify_order_id, plan, start_date, end_date, status)
         VALUES (${user.id}, ${shopifyOrderId}, ${plan}, ${now.toISOString()}, ${endDate.toISOString()}, 'active')
@@ -100,11 +111,16 @@ export async function POST(req: NextRequest) {
         WHERE shopify_order_id = ${shopifyOrderId}
       `;
 
-      await sql`
+      const updated = await sql`
         UPDATE users
         SET status = 'cancelled'
         WHERE email = ${email}
+        RETURNING discord_id
       `;
+
+      // Strip Discord member role
+      const discordId = (updated[0] as { discord_id: string | null } | undefined)?.discord_id;
+      if (discordId) await removeDiscordRole(discordId);
 
       return NextResponse.json({ ok: true });
     } catch (err) {
