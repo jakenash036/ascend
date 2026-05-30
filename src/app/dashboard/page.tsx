@@ -18,7 +18,6 @@ interface SubRow {
   plan: string;
   start_date: string;
   end_date: string;
-  status: string;
 }
 
 function formatDate(iso: string): string {
@@ -50,7 +49,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const subs = await sql`
-    SELECT plan, start_date, end_date, status
+    SELECT plan, start_date, end_date
     FROM subscriptions
     WHERE user_id = ${user.id}
     ORDER BY created_at DESC
@@ -64,7 +63,7 @@ export default async function DashboardPage() {
   type MemberState = "active" | "expired" | "cancelled" | "none";
   let memberState: MemberState = "none";
   if (sub) {
-    if (sub.status === "cancelled") memberState = "cancelled";
+    if (user.status === "cancelled") memberState = "cancelled";
     else if (isExpired(sub.end_date)) memberState = "expired";
     else memberState = "active";
   }
