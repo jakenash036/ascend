@@ -127,8 +127,27 @@ export default async function DashboardPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#808080] tracking-wide">Renews</span>
-                    <span className="text-xs text-[#e8e8e3] tracking-wide">{formatDate(sub.end_date)}</span>
+                    <span
+                      className="text-xs tracking-wide"
+                      style={{
+                        color: new Date(sub.end_date).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000
+                          ? "#f59e0b"
+                          : "#e8e8e3",
+                      }}
+                    >
+                      {formatDate(sub.end_date)}
+                      {new Date(sub.end_date).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000
+                        ? " · Renewing soon"
+                        : ""}
+                    </span>
                   </div>
+                  <a
+                    href="https://discord.gg/ascend"
+                    target="_top"
+                    className="group text-xs text-[#c0c0c0] hover:text-[#e8e8e3] tracking-wide transition-colors duration-200 mt-1 inline-block"
+                  >
+                    Access the Framework <span className="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
+                  </a>
                   <a
                     href="https://account.ascendescapeaverage.com/pages/6971b1a1-27f6-4c27-b8b0-3009fd3b921d"
                     target="_top"
@@ -207,6 +226,15 @@ export default async function DashboardPage() {
                   <span className="text-xs text-[#808080] tracking-wide">Username</span>
                   <span className="text-xs text-[#e8e8e3] tracking-wide">{user.discord}</span>
                 </div>
+              )}
+              {user.discord_id && (
+                <a
+                  href="https://discord.gg/ascend"
+                  target="_top"
+                  className="border border-[#2a2a2a] hover:border-[#c0c0c0] text-[#808080] hover:text-[#e8e8e3] text-xs font-semibold tracking-widest uppercase text-center py-3 px-4 w-full mt-2 transition-colors duration-200"
+                >
+                  Enter the Server
+                </a>
               )}
               {!user.discord_id && memberState === "active" && (
                 <>

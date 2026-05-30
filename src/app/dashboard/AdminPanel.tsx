@@ -95,11 +95,20 @@ export default function AdminPanel() {
   const active = members.filter((m) => m.status === "active").length;
   const expired = members.filter((m) => m.status === "expired").length;
   const cancelled = members.filter((m) => m.status === "cancelled").length;
+  const discordLinked = members.filter((m) => m.discord_id !== null).length;
+  const monthlyActive = members.filter((m) => m.plan === "monthly" && m.status === "active").length;
+  const yearlyActive = members.filter((m) => m.plan === "yearly" && m.status === "active").length;
+  const now = new Date();
+  const newThisMonth = members.filter((m) => {
+    const d = new Date(m.created_at);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+  const mrr = (monthlyActive * 19.99) + (yearlyActive * 179.99 / 12);
 
   return (
     <div>
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      {/* Stats rows */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         {[
           { label: "Total", value: total },
           { label: "Active", value: active, colour: "#4ade80" },
@@ -119,6 +128,27 @@ export default function AdminPanel() {
           </div>
         ))}
       </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        {[
+          { label: "Discord Linked", value: discordLinked },
+          { label: "Monthly", value: monthlyActive },
+          { label: "Yearly", value: yearlyActive },
+          { label: "New This Month", value: newThisMonth },
+        ].map(({ label, value }) => (
+          <div key={label} className="bg-[#141414] border border-[#2a2a2a] p-4">
+            <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-1">
+              {label}
+            </p>
+            <p className="text-xl font-semibold text-[#e8e8e3]">
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-[#808080] tracking-wide mt-2 mb-6">
+        Monthly Recurring Revenue (est.):{" "}
+        <span className="text-[#c0c0c0] font-semibold">£{mrr.toFixed(2)}</span>
+      </p>
 
       {/* Search */}
       <div className="mb-4">

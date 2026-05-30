@@ -37,6 +37,20 @@ const EyeOffIcon = () => (
   </svg>
 );
 
+function getPasswordStrength(pw: string): { score: number; label: string; colour: string } {
+  if (!pw) return { score: 0, label: "", colour: "" };
+  const hasUpper = /[A-Z]/.test(pw);
+  const hasLower = /[a-z]/.test(pw);
+  const hasNumber = /[0-9]/.test(pw);
+  const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+  const typeCount = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+
+  if (pw.length >= 10 && typeCount === 4) return { score: 4, label: "Very Strong", colour: "#4ade80" };
+  if (pw.length >= 8 && typeCount >= 3) return { score: 3, label: "Strong", colour: "#4ade80" };
+  if (pw.length >= 8 && typeCount >= 2) return { score: 2, label: "Fair", colour: "#f59e0b" };
+  return { score: 1, label: "Weak", colour: "#ff4444" };
+}
+
 function isInIframe(): boolean {
   try { return window.self !== window.top; } catch { return true; }
 }
@@ -96,6 +110,7 @@ export default function SubscriptionFlow({
       next.email = "Invalid email address";
     if (!password) next.password = "Password is required";
     else if (password.length < 8) next.password = "Password must be at least 8 characters";
+    else if (getPasswordStrength(password).score < 2) next.password = "Password is too weak — use uppercase, numbers or symbols";
     if (!confirmPassword) next.confirmPassword = "Please confirm your password";
     else if (password !== confirmPassword) next.confirmPassword = "Passwords do not match";
     setErrors(next);
@@ -371,6 +386,34 @@ export default function SubscriptionFlow({
                 {errors.password && (
                   <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.password}</p>
                 )}
+                {password.length > 0 && (() => {
+                  const { score, label, colour } = getPasswordStrength(password);
+                  const segmentColours = [
+                    score >= 1 ? colour : "#2a2a2a",
+                    score >= 2 ? colour : "#2a2a2a",
+                    score >= 3 ? colour : "#2a2a2a",
+                    score >= 4 ? colour : "#2a2a2a",
+                  ];
+                  return (
+                    <>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <div className="flex flex-1 gap-1">
+                          {segmentColours.map((c, i) => (
+                            <div key={i} className="h-0.5 flex-1 rounded-none" style={{ background: c }} />
+                          ))}
+                        </div>
+                        <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: colour }}>
+                          {label}
+                        </span>
+                      </div>
+                      {score < 4 && (
+                        <p className="text-[#404040] text-[10px] tracking-wide mt-1">
+                          Min. 8 characters · Mix of letters, numbers &amp; symbols
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <div>
                 <div className="relative">
