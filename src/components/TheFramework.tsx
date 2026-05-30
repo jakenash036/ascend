@@ -44,10 +44,10 @@ export default function TheFramework() {
         {/* Section header */}
         <div className="mb-16 text-center">
           <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-4">
-            The Curriculum
+            The Framework
           </p>
           <h2 className="text-3xl sm:text-4xl font-semibold text-[#e8e8e3] tracking-tight">
-            The Framework
+            Six Modules. One Operating System.
           </h2>
           <div className="chrome-line w-16 mx-auto mt-8" aria-hidden="true" />
         </div>
@@ -57,9 +57,9 @@ export default function TheFramework() {
           {modules.map((mod) => (
             <div
               key={mod.number}
-              className="py-8 flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8 group"
+              className="py-8 border-l-2 border-[#1e1e1e] pl-6 flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8 group transition-colors duration-300 hover:border-[#c0c0c0]"
             >
-              <span className="text-[#303030] font-mono text-2xl font-bold shrink-0 group-hover:text-[#c0c0c0] transition-colors duration-200 w-12">
+              <span className="text-[#1e1e1e] font-mono text-2xl font-bold shrink-0 group-hover:text-[#c0c0c0] transition-colors duration-300 w-12">
                 {mod.number}
               </span>
               <div className="flex flex-col gap-2">

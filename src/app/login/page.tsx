@@ -45,16 +45,23 @@ export default function LoginPage() {
         </a>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm">
-          <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">Member Access</p>
-          <h1 className="text-2xl font-semibold text-[#e8e8e3] tracking-tight mb-8">
+      <div className="relative flex-1 flex items-center justify-center px-6 py-16 overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_40%,rgba(192,192,192,0.04)_0%,transparent_70%)]"
+        />
+        <div className="relative z-10 w-full max-w-sm">
+          <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2 opacity-0 animate-fade-up">Member Access</p>
+          <h1 className="text-2xl font-semibold text-[#e8e8e3] tracking-tight mb-8 opacity-0 animate-fade-up delay-100">
             Sign in to Ascend
           </h1>
 
-          <div className="chrome-line mb-8" aria-hidden="true" />
+          <div className="chrome-line mb-3 opacity-0 animate-fade-up delay-200" aria-hidden="true" />
+          <p className="text-[#404040] text-xs tracking-wide text-center mb-6 opacity-0 animate-fade-up delay-300">
+            Access your private member dashboard.
+          </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 opacity-0 animate-fade-up delay-300">
             <input
               type="email"
               placeholder="Email address"
@@ -99,7 +106,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex items-center justify-between opacity-0 animate-fade-up delay-500">
             <a
               href="https://members.ascendescapeaverage.com/forgot-password"
               target="_top"

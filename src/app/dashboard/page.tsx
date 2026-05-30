@@ -105,7 +105,7 @@ export default async function DashboardPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Membership card */}
-          <div className="bg-[#141414] border border-[#2a2a2a] p-6">
+          <div className="bg-[#141414] border border-[#2a2a2a] p-6 opacity-0 animate-fade-up">
             <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">Membership</p>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
@@ -180,13 +180,24 @@ export default async function DashboardPage() {
           </div>
 
           {/* Discord card */}
-          <div className="bg-[#141414] border border-[#2a2a2a] p-6">
+          <div className="bg-[#141414] border border-[#2a2a2a] p-6 opacity-0 animate-fade-up delay-100">
             <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">Discord</p>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#808080] tracking-wide">Status</span>
                 {user.discord_id ? (
-                  <span className="text-xs font-semibold tracking-widest text-[#4ade80]">LINKED</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold tracking-widest text-[#4ade80]">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.212.375-.447.864-.613 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.621-1.249.077.077 0 0 0-.079-.037 19.73 19.73 0 0 0-4.885 1.515.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.1 14.1 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.01c.12.099.246.197.373.291a.077.077 0 0 1-.006.128 12.3 12.3 0 0 1-1.873.892.076.076 0 0 0-.04.106c.36.698.771 1.363 1.225 1.994a.076.076 0 0 0 .084.028 19.87 19.87 0 0 0 6.002-3.03.077.077 0 0 0 .03-.056c.5-5.177-.838-9.674-3.549-13.661a.061.061 0 0 0-.031-.028ZM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.211 0 2.176 1.094 2.157 2.418 0 1.334-.955 2.419-2.157 2.419Zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.211 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419Z" />
+                    </svg>
+                    LINKED
+                  </span>
                 ) : (
                   <span className="text-xs font-semibold tracking-widest text-[#808080]">NOT LINKED</span>
                 )}
@@ -220,7 +231,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Account card */}
-          <div className="bg-[#141414] border border-[#2a2a2a] p-6 sm:col-span-2">
+          <div className="bg-[#141414] border border-[#2a2a2a] p-6 sm:col-span-2 opacity-0 animate-fade-up delay-200">
             <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">Account</p>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
@@ -236,9 +247,9 @@ export default async function DashboardPage() {
                 <a
                   href={`${APP_URL}/forgot-password`}
                   target="_top"
-                  className="text-xs text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200 tracking-wide"
+                  className="group text-xs text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200 tracking-wide inline-flex items-center"
                 >
-                  Reset password →
+                  Reset password <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
                 </a>
               </div>
             </div>

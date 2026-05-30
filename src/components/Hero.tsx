@@ -21,15 +21,15 @@ export default function Hero({ onJoin }: HeroProps) {
           Private Operator Community
         </p>
 
-        <h1 className="text-6xl sm:text-8xl font-bold tracking-tight text-[#e8e8e3] leading-none">
+        <h1 className="text-6xl sm:text-8xl font-bold tracking-tight text-[#e8e8e3] leading-none animate-fade-up">
           ASCEND
         </h1>
 
         {/* Chrome divider */}
-        <div className="chrome-line w-24" aria-hidden="true" />
+        <div className="chrome-line w-24 opacity-0 animate-fade-up delay-100" aria-hidden="true" />
 
-        <p className="text-2xl sm:text-3xl font-light tracking-widest uppercase text-[#c0c0c0]">
-          Escape Average.
+        <p className="text-[1.75rem] sm:text-4xl font-light tracking-widest uppercase text-[#e8e8e3] opacity-0 animate-fade-up delay-200">
+          Escape Average<span className="text-[#c0c0c0]">.</span>
         </p>
 
         <p className="max-w-xl text-base sm:text-lg text-[#7a7a7a] leading-relaxed">
@@ -38,7 +38,7 @@ export default function Hero({ onJoin }: HeroProps) {
           operate at a level most people never reach.
         </p>
 
-        <CTAButton className="mt-4" onClick={onJoin} />
+        <CTAButton className="mt-4 hover:scale-[1.02]" onClick={onJoin} />
       </div>
 
       {/* Bottom fade */}
