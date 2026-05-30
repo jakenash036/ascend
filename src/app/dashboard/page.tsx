@@ -18,6 +18,7 @@ interface SubRow {
   plan: string;
   start_date: string;
   end_date: string;
+  status: string;
 }
 
 function formatDate(iso: string): string {
@@ -28,13 +29,12 @@ function formatDate(iso: string): string {
   });
 }
 
-function statusLabel(status: string): { label: string; colour: string } {
-  if (status === "active") return { label: "ACTIVE", colour: "#4ade80" };
-  if (status === "cancelled") return { label: "CANCELLED", colour: "#ff4444" };
-  return { label: "PENDING", colour: "#c0c0c0" };
+function isExpired(endDate: string): boolean {
+  return new Date(endDate) < new Date();
 }
 
 const APP_URL = "https://members.ascendescapeaverage.com";
+const SHOPIFY_URL = "https://ascendescapeaverage.com";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const subs = await sql`
-    SELECT plan, start_date, end_date
+    SELECT plan, start_date, end_date, status
     FROM subscriptions
     WHERE user_id = ${user.id}
     ORDER BY created_at DESC
@@ -58,15 +58,32 @@ export default async function DashboardPage() {
   `;
   const sub = (subs[0] as SubRow | undefined) ?? null;
 
-  const { label: statusText, colour: statusColour } = statusLabel(user.status);
   const firstName = user.first_name ?? "";
+
+  // Derive membership state
+  type MemberState = "active" | "expired" | "cancelled" | "none";
+  let memberState: MemberState = "none";
+  if (sub) {
+    if (sub.status === "cancelled") memberState = "cancelled";
+    else if (isExpired(sub.end_date)) memberState = "expired";
+    else memberState = "active";
+  }
+
+  const stateConfig: Record<MemberState, { label: string; colour: string; message: string | null }> = {
+    active: { label: "ACTIVE", colour: "#4ade80", message: null },
+    expired: { label: "EXPIRED", colour: "#ff4444", message: "Your subscription has expired. Renew to regain access." },
+    cancelled: { label: "CANCELLED", colour: "#ff4444", message: "Your subscription has been cancelled." },
+    none: { label: "NO SUBSCRIPTION", colour: "#808080", message: "You don't have an active subscription yet." },
+  };
+
+  const { label: statusText, colour: statusColour, message: statusMessage } = stateConfig[memberState];
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e8e8e3] flex flex-col">
       {/* Top bar */}
       <div className="w-full flex items-center justify-between px-6 py-3 border-b border-[#2a2a2a]">
         <a
-          href="https://ascendescapeaverage.com"
+          href={SHOPIFY_URL}
           target="_top"
           className="text-xs tracking-[0.4em] uppercase text-[#808080] font-medium hover:text-[#e8e8e3] transition-colors duration-200"
         >
@@ -76,9 +93,7 @@ export default async function DashboardPage() {
       </div>
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-6 py-14">
-        <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">
-          Member Dashboard
-        </p>
+        <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">Member Dashboard</p>
         <h1 className="text-2xl font-semibold text-[#e8e8e3] tracking-tight mb-8">
           Welcome back{firstName ? `, ${firstName}` : ""}.
         </h1>
@@ -88,92 +103,115 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Membership card */}
           <div className="bg-[#141414] border border-[#2a2a2a] p-6">
-            <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">
-              Membership
-            </p>
+            <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">Membership</p>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#808080] tracking-wide">Status</span>
-                <span
-                  className="text-xs font-semibold tracking-widest"
-                  style={{ color: statusColour }}
-                >
+                <span className="text-xs font-semibold tracking-widest" style={{ color: statusColour }}>
                   {statusText}
                 </span>
               </div>
-              {sub && (
+
+              {sub && memberState === "active" && (
                 <>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#808080] tracking-wide">Plan</span>
-                    <span className="text-xs text-[#e8e8e3] capitalize tracking-wide">
-                      {sub.plan}
-                    </span>
+                    <span className="text-xs text-[#e8e8e3] capitalize tracking-wide">{sub.plan}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#808080] tracking-wide">Started</span>
-                    <span className="text-xs text-[#e8e8e3] tracking-wide">
-                      {formatDate(sub.start_date)}
-                    </span>
+                    <span className="text-xs text-[#e8e8e3] tracking-wide">{formatDate(sub.start_date)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#808080] tracking-wide">Renews</span>
-                    <span className="text-xs text-[#e8e8e3] tracking-wide">
-                      {formatDate(sub.end_date)}
-                    </span>
+                    <span className="text-xs text-[#e8e8e3] tracking-wide">{formatDate(sub.end_date)}</span>
                   </div>
                 </>
               )}
-              {!sub && (
-                <p className="text-xs text-[#404040] tracking-wide">
-                  No active subscription found.
-                </p>
+
+              {sub && memberState === "expired" && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#808080] tracking-wide">Plan</span>
+                    <span className="text-xs text-[#e8e8e3] capitalize tracking-wide">{sub.plan}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#808080] tracking-wide">Expired</span>
+                    <span className="text-xs text-[#ff4444] tracking-wide">{formatDate(sub.end_date)}</span>
+                  </div>
+                  {statusMessage && (
+                    <p className="text-xs text-[#808080] tracking-wide pt-1">{statusMessage}</p>
+                  )}
+                  <a
+                    href={`${SHOPIFY_URL}/#join`}
+                    target="_top"
+                    className="mt-2 w-full px-4 py-3 bg-[#e8e8e3] text-[#0a0a0a] text-xs font-semibold tracking-widest uppercase text-center hover:bg-white transition-colors duration-200"
+                  >
+                    Renew Membership
+                  </a>
+                </>
+              )}
+
+              {(memberState === "cancelled" || memberState === "none") && (
+                <>
+                  {statusMessage && (
+                    <p className="text-xs text-[#808080] tracking-wide pt-1">{statusMessage}</p>
+                  )}
+                  <a
+                    href={`${SHOPIFY_URL}/#join`}
+                    target="_top"
+                    className="mt-2 w-full px-4 py-3 bg-[#e8e8e3] text-[#0a0a0a] text-xs font-semibold tracking-widest uppercase text-center hover:bg-white transition-colors duration-200"
+                  >
+                    {memberState === "cancelled" ? "Resubscribe" : "Join Ascend"}
+                  </a>
+                </>
               )}
             </div>
           </div>
 
           {/* Discord card */}
           <div className="bg-[#141414] border border-[#2a2a2a] p-6">
-            <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">
-              Discord
-            </p>
+            <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">Discord</p>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#808080] tracking-wide">Status</span>
                 {user.discord_id ? (
-                  <span className="text-xs font-semibold tracking-widest text-[#4ade80]">
-                    LINKED
-                  </span>
+                  <span className="text-xs font-semibold tracking-widest text-[#4ade80]">LINKED</span>
                 ) : (
-                  <span className="text-xs font-semibold tracking-widest text-[#c0c0c0]">
-                    NOT LINKED
-                  </span>
+                  <span className="text-xs font-semibold tracking-widest text-[#808080]">NOT LINKED</span>
                 )}
               </div>
               {user.discord_id && user.discord && (
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[#808080] tracking-wide">Username</span>
-                  <span className="text-xs text-[#e8e8e3] tracking-wide">
-                    {user.discord}
-                  </span>
+                  <span className="text-xs text-[#e8e8e3] tracking-wide">{user.discord}</span>
                 </div>
               )}
-              {!user.discord_id && (
-                <a
-                  href={`${APP_URL}/api/discord/link`}
-                  target="_top"
-                  className="mt-2 w-full px-4 py-3 border border-[#2a2a2a] hover:border-[#c0c0c0] text-[#c0c0c0] hover:text-[#e8e8e3] text-xs font-semibold tracking-widest uppercase text-center transition-colors duration-200"
-                >
-                  Link Discord
-                </a>
+              {!user.discord_id && memberState === "active" && (
+                <>
+                  <p className="text-xs text-[#808080] tracking-wide pt-1">
+                    Link your Discord to get access to the member server.
+                  </p>
+                  <a
+                    href={`${APP_URL}/api/discord/link`}
+                    target="_top"
+                    className="mt-2 w-full px-4 py-3 border border-[#2a2a2a] hover:border-[#c0c0c0] text-[#c0c0c0] hover:text-[#e8e8e3] text-xs font-semibold tracking-widest uppercase text-center transition-colors duration-200"
+                  >
+                    Link Discord
+                  </a>
+                </>
+              )}
+              {!user.discord_id && memberState !== "active" && (
+                <p className="text-xs text-[#404040] tracking-wide pt-1">
+                  Available to active members only.
+                </p>
               )}
             </div>
           </div>
 
           {/* Account card */}
           <div className="bg-[#141414] border border-[#2a2a2a] p-6 sm:col-span-2">
-            <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">
-              Account
-            </p>
+            <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">Account</p>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#808080] tracking-wide">Email</span>
@@ -181,9 +219,17 @@ export default async function DashboardPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[#808080] tracking-wide">Member since</span>
-                <span className="text-xs text-[#e8e8e3] tracking-wide">
-                  {formatDate(user.created_at)}
-                </span>
+                <span className="text-xs text-[#e8e8e3] tracking-wide">{formatDate(user.created_at)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#808080] tracking-wide">Password</span>
+                <a
+                  href={`${APP_URL}/forgot-password`}
+                  target="_top"
+                  className="text-xs text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200 tracking-wide"
+                >
+                  Reset password →
+                </a>
               </div>
             </div>
           </div>

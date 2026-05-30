@@ -3,6 +3,33 @@ import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+async function assignDiscordRole(discordUserId: string): Promise<void> {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const roleId = process.env.DISCORD_ROLE_ID;
+
+  if (!botToken || !guildId || !roleId) {
+    console.warn("Discord bot env vars not set — skipping role assignment");
+    return;
+  }
+
+  const res = await fetch(
+    `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bot ${botToken}`,
+        "Content-Length": "0",
+      },
+    }
+  );
+
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text();
+    console.error("Failed to assign Discord role:", res.status, body);
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const code = searchParams.get("code");
@@ -10,7 +37,6 @@ export async function GET(req: NextRequest) {
 
   const cookieValue = req.cookies.get("discord_link")?.value;
 
-  // Validate state / CSRF
   if (!code || !state || !cookieValue) {
     return NextResponse.redirect("https://ascendescapeaverage.com/pages/dashboard?error=discord_link_failed");
   }
@@ -30,7 +56,6 @@ export async function GET(req: NextRequest) {
   const redirectUri = `${baseUrl}/api/discord/callback`;
 
   try {
-    // Exchange code for access token
     const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -46,7 +71,6 @@ export async function GET(req: NextRequest) {
     if (!tokenRes.ok) throw new Error("Token exchange failed");
     const tokenData = (await tokenRes.json()) as { access_token: string };
 
-    // Fetch Discord user info
     const userRes = await fetch("https://discord.com/api/users/@me", {
       headers: { Authorization: "Bearer " + tokenData.access_token },
     });
@@ -63,7 +87,6 @@ export async function GET(req: NextRequest) {
         ? `${discordUser.username}#${discordUser.discriminator}`
         : discordUser.username;
 
-    // Save discord_id and discord username to the user record
     const sql = getDb();
     await sql`
       UPDATE users
@@ -71,6 +94,9 @@ export async function GET(req: NextRequest) {
           discord = ${discordUsername}
       WHERE id = ${userId}
     `;
+
+    // Assign member role in Discord server
+    await assignDiscordRole(discordUser.id);
   } catch (err) {
     console.error("Discord OAuth callback error:", err);
     const response = NextResponse.redirect(

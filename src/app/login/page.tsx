@@ -20,8 +20,6 @@ export default function LoginPage() {
         setError(err);
         setLoading(false);
       } else {
-        // Cookie is first-party (members.ascendescapeaverage.com).
-        // Reload the top window back to the Shopify dashboard page.
         if (typeof window !== "undefined") {
           if (window.top && window.top !== window) {
             window.top.location.href = "https://ascendescapeaverage.com/pages/dashboard";
@@ -49,9 +47,7 @@ export default function LoginPage() {
 
       <div className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm">
-          <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">
-            Member Access
-          </p>
+          <p className="text-xs tracking-[0.4em] uppercase text-[#808080] mb-2">Member Access</p>
           <h1 className="text-2xl font-semibold text-[#e8e8e3] tracking-tight mb-8">
             Sign in to Ascend
           </h1>
@@ -59,17 +55,15 @@ export default function LoginPage() {
           <div className="chrome-line mb-8" aria-hidden="true" />
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
-              />
-            </div>
+            <input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
+            />
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -94,9 +88,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {error && (
-              <p className="text-[#ff4444] text-xs tracking-wide">{error}</p>
-            )}
+            {error && <p className="text-[#ff4444] text-xs tracking-wide">{error}</p>}
 
             <button
               type="submit"
@@ -107,16 +99,22 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-8 text-xs text-[#404040] tracking-wide text-center">
-            Not a member?{" "}
+          <div className="mt-6 flex items-center justify-between">
+            <a
+              href="https://members.ascendescapeaverage.com/forgot-password"
+              target="_top"
+              className="text-xs text-[#404040] hover:text-[#808080] transition-colors duration-200 tracking-wide"
+            >
+              Forgot password?
+            </a>
             <a
               href="https://ascendescapeaverage.com"
               target="_top"
-              className="text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200"
+              className="text-xs text-[#404040] hover:text-[#808080] transition-colors duration-200 tracking-wide"
             >
-              Join Ascend
+              Not a member? Join
             </a>
-          </p>
+          </div>
         </div>
       </div>
     </div>
