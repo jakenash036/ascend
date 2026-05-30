@@ -37,7 +37,9 @@ async function assignDiscordRole(discordId: string): Promise<void> {
 
   if (!res.ok && res.status !== 204) {
     const body = await res.text();
-    console.error("Failed to assign Discord role:", res.status, body);
+    console.error("[Webhook] Failed to assign Discord role:", res.status, body);
+  } else {
+    console.log(`[Webhook] Assigned Discord role to ${discordId}`);
   }
 }
 
@@ -47,13 +49,20 @@ async function removeDiscordRole(discordId: string): Promise<void> {
   const roleId = process.env.DISCORD_ROLE_ID;
   if (!botToken || !guildId || !roleId || !discordId) return;
 
-  await fetch(
+  const res = await fetch(
     `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
     {
       method: "DELETE",
       headers: { Authorization: `Bot ${botToken}` },
     }
   );
+
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text();
+    console.error("[Webhook] Failed to remove Discord role:", res.status, body);
+  } else {
+    console.log(`[Webhook] Removed Discord role from ${discordId}`);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -65,6 +74,7 @@ export async function POST(req: NextRequest) {
   }
 
   const topic = req.headers.get("x-shopify-topic");
+  console.log(`[Webhook] Received topic: ${topic}`);
 
   if (topic === "orders/paid") {
     try {
@@ -73,7 +83,6 @@ export async function POST(req: NextRequest) {
       const shopifyOrderId = String(order.id);
       const shopifyCustomerId = order.customer?.id ? String(order.customer.id) : null;
 
-      // Get plan from line item properties
       const lineItemProps: { name: string; value: string }[] =
         order.line_items?.[0]?.properties ?? [];
       const plan = lineItemProps.find((p) => p.name === "plan")?.value ?? "monthly";
@@ -114,14 +123,13 @@ export async function POST(req: NextRequest) {
         ON CONFLICT (shopify_order_id) DO NOTHING
       `;
 
-      // Re-assign Discord role if already linked (covers renewals after expiry)
       if (user.discord_id) {
         await assignDiscordRole(user.discord_id);
       }
 
       return NextResponse.json({ ok: true });
     } catch (err) {
-      console.error("Webhook error (orders/paid):", err);
+      console.error("[Webhook] Error (orders/paid):", err);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
@@ -131,6 +139,8 @@ export async function POST(req: NextRequest) {
       const order = JSON.parse(rawBody);
       const email = order.email?.toLowerCase().trim();
       const shopifyOrderId = String(order.id);
+
+      console.log(`[Webhook] Cancelling order ${shopifyOrderId} for ${email}`);
 
       const sql = getDb();
 
@@ -148,11 +158,12 @@ export async function POST(req: NextRequest) {
       `;
 
       const discordId = (updated[0] as { discord_id: string | null } | undefined)?.discord_id;
+      console.log(`[Webhook] discord_id for cancelled user: ${discordId ?? "none"}`);
       if (discordId) await removeDiscordRole(discordId);
 
       return NextResponse.json({ ok: true });
     } catch (err) {
-      console.error("Webhook error (orders/cancelled):", err);
+      console.error("[Webhook] Error (orders/cancelled):", err);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
