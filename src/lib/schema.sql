@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
   first_name TEXT,
   last_name TEXT,
   discord TEXT,
+  discord_id TEXT UNIQUE,
+  password_hash TEXT,
   status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'active' | 'cancelled'
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

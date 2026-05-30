@@ -36,6 +36,8 @@ export default function SubscriptionFlow({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [discord, setDiscord] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [dotCount, setDotCount] = useState(0);
@@ -72,6 +74,10 @@ export default function SubscriptionFlow({
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       next.email = "Invalid email address";
     if (!discord.trim()) next.discord = "Discord username is required";
+    if (!password) next.password = "Password is required";
+    else if (password.length < 8) next.password = "Password must be at least 8 characters";
+    if (!confirmPassword) next.confirmPassword = "Please confirm your password";
+    else if (password !== confirmPassword) next.confirmPassword = "Passwords do not match";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -81,9 +87,9 @@ export default function SubscriptionFlow({
     setLoading(true);
     setDotCount(0);
 
-    // Save member data to DB before checkout (non-blocking on failure)
+    // Save member data to DB before checkout (blocks on failure — password must be saved)
     try {
-      await fetch("/api/submit", {
+      const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -91,11 +97,16 @@ export default function SubscriptionFlow({
           lastName: lastName.trim(),
           email: email.trim(),
           discord: discord.trim(),
+          password,
           plan: selectedPlan,
         }),
       });
+      if (!res.ok) throw new Error("Submit failed");
     } catch (err) {
       console.error("Pre-checkout submit error:", err);
+      setErrors({ form: "Something went wrong saving your details. Please try again." });
+      setLoading(false);
+      return;
     }
 
     const sellingPlanId = selectedPlan === "monthly" ? MONTHLY_PLAN : YEARLY_PLAN;
@@ -143,6 +154,8 @@ export default function SubscriptionFlow({
     setLastName("");
     setEmail("");
     setDiscord("");
+    setPassword("");
+    setConfirmPassword("");
     setErrors({});
     setSelectedPlan("monthly");
     setLoading(false);
@@ -329,6 +342,39 @@ export default function SubscriptionFlow({
                 <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.discord}</p>
               )}
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
+                />
+                {errors.password && (
+                  <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.password}</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-[#141414] border border-[#2a2a2a] focus:border-[#c0c0c0] text-[#e8e8e3] placeholder-[#404040] px-4 py-3 text-sm tracking-wide outline-none transition-colors duration-200 disabled:opacity-40"
+                />
+                {errors.confirmPassword && (
+                  <p className="text-[#ff4444] text-xs mt-1 tracking-wide">{errors.confirmPassword}</p>
+                )}
+              </div>
+            </div>
+
+            {errors.form && (
+              <p className="text-[#ff4444] text-xs tracking-wide">{errors.form}</p>
+            )}
           </div>
 
           <button
