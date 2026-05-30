@@ -18,11 +18,35 @@ function verifyShopifyWebhook(body: string, hmacHeader: string): boolean {
   }
 }
 
+async function assignDiscordRole(discordId: string): Promise<void> {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const roleId = process.env.DISCORD_ROLE_ID;
+  if (!botToken || !guildId || !roleId || !discordId) return;
+
+  const res = await fetch(
+    `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bot ${botToken}`,
+        "Content-Length": "0",
+      },
+    }
+  );
+
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text();
+    console.error("Failed to assign Discord role:", res.status, body);
+  }
+}
+
 async function removeDiscordRole(discordId: string): Promise<void> {
   const botToken = process.env.DISCORD_BOT_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
   const roleId = process.env.DISCORD_ROLE_ID;
   if (!botToken || !guildId || !roleId || !discordId) return;
+
   await fetch(
     `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
     {
@@ -69,7 +93,7 @@ export async function POST(req: NextRequest) {
         SET status = 'active',
             shopify_customer_id = COALESCE(${shopifyCustomerId}, shopify_customer_id)
         WHERE email = ${email}
-        RETURNING id
+        RETURNING id, discord_id
       `;
 
       if (result.length === 0) {
@@ -82,13 +106,18 @@ export async function POST(req: NextRequest) {
         `;
       }
 
-      const user = result[0] ?? (await sql`SELECT id FROM users WHERE email = ${email}`)[0];
+      const user = result[0] ?? (await sql`SELECT id, discord_id FROM users WHERE email = ${email}`)[0];
 
       await sql`
         INSERT INTO subscriptions (user_id, shopify_order_id, plan, start_date, end_date, status)
         VALUES (${user.id}, ${shopifyOrderId}, ${plan}, ${now.toISOString()}, ${endDate.toISOString()}, 'active')
         ON CONFLICT (shopify_order_id) DO NOTHING
       `;
+
+      // Re-assign Discord role if already linked (covers renewals after expiry)
+      if (user.discord_id) {
+        await assignDiscordRole(user.discord_id);
+      }
 
       return NextResponse.json({ ok: true });
     } catch (err) {
@@ -118,7 +147,6 @@ export async function POST(req: NextRequest) {
         RETURNING discord_id
       `;
 
-      // Strip Discord member role
       const discordId = (updated[0] as { discord_id: string | null } | undefined)?.discord_id;
       if (discordId) await removeDiscordRole(discordId);
 
