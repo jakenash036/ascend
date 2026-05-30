@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { loginAction } from "./actions";
 
 export default function LoginPage() {
@@ -9,9 +9,27 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inIframe, setInIframe] = useState(false);
+
+  useEffect(() => {
+    try {
+      setInIframe(window.self !== window.top);
+    } catch {
+      setInIframe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // If we're inside a Shopify iframe, we can't set cookies.
+    // Break out to the full Vercel login page and let the user log in there.
+    if (inIframe) {
+      window.top!.location.href = "https://ascend-drab-one.vercel.app/login";
+      return;
+    }
+
+    // Full-page login — cookies work fine here.
     setError("");
     setLoading(true);
     try {
@@ -20,16 +38,8 @@ export default function LoginPage() {
         setError(err);
         setLoading(false);
       } else {
-        // Redirect the full browser window (top) to the dashboard on Vercel directly.
-        // Avoids all iframe/third-party cookie issues.
-        const dest = "https://ascend-drab-one.vercel.app/dashboard";
-        if (typeof window !== "undefined") {
-          if (window.top) {
-            window.top.location.href = dest;
-          } else {
-            window.location.href = dest;
-          }
-        }
+        // After successful login, send the user to the Shopify dashboard page.
+        window.location.href = "https://ascendescapeaverage.com/pages/dashboard";
       }
     } catch {
       setLoading(false);
