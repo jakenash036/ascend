@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   discord_id TEXT UNIQUE,
   password_hash TEXT,
   status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'active' | 'cancelled'
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -1,9 +1,22 @@
-import { DefaultSession } from "next-auth";
+import "next-auth";
 
 declare module "next-auth" {
+  interface User {
+    isAdmin?: boolean;
+  }
   interface Session {
     user: {
       id: string;
-    } & DefaultSession["user"];
+      email: string;
+      name?: string;
+      isAdmin?: boolean;
+    };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    userId?: string;
+    isAdmin?: boolean;
   }
 }
