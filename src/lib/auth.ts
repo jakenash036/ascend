@@ -6,6 +6,19 @@ import bcrypt from "bcryptjs";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
+  // sameSite: "none" required so the cookie is written when the login page
+  // is rendered inside a cross-site iframe (ascendescapeaverage.com)
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "none" as const,
+        path: "/",
+        secure: true,
+      },
+    },
+  },
   providers: [
     Credentials({
       credentials: {

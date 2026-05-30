@@ -34,7 +34,8 @@ function statusLabel(status: string): { label: string; colour: string } {
   return { label: "PENDING", colour: "#c0c0c0" };
 }
 
-const APP_URL = process.env.NEXTAUTH_URL ?? "https://ascend-drab-one.vercel.app";
+const APP_URL =
+  process.env.NEXTAUTH_URL ?? "https://ascend-drab-one.vercel.app";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -85,7 +86,7 @@ export default async function DashboardPage() {
         <div className="chrome-line mb-10" aria-hidden="true" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Subscription card */}
+          {/* Membership card */}
           <div className="bg-[#141414] border border-[#2a2a2a] p-6">
             <p className="text-xs tracking-[0.3em] uppercase text-[#808080] mb-5">
               Membership

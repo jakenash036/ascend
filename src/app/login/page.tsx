@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { loginAction } from "./actions";
 
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://ascend-drab-one.vercel.app";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,10 +19,22 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const err = await loginAction(email, password);
-      if (err) setError(err);
+      if (err) {
+        setError(err);
+        setLoading(false);
+      } else {
+        // Navigate the top-level window to the dashboard.
+        // If we're inside a Shopify iframe this breaks out of it.
+        const dest = `${APP_URL}/dashboard`;
+        if (typeof window !== "undefined") {
+          if (window.top && window.top !== window) {
+            window.top.location.href = dest;
+          } else {
+            window.location.href = dest;
+          }
+        }
+      }
     } catch {
-      // redirect throws — that's fine
-    } finally {
       setLoading(false);
     }
   };
@@ -97,7 +112,10 @@ export default function LoginPage() {
 
           <p className="mt-8 text-xs text-[#404040] tracking-wide text-center">
             Not a member?{" "}
-            <a href="https://ascendescapeaverage.com" className="text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200">
+            <a
+              href="https://ascendescapeaverage.com"
+              className="text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200"
+            >
               Join Ascend
             </a>
           </p>
