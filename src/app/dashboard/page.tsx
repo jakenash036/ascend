@@ -34,8 +34,7 @@ function statusLabel(status: string): { label: string; colour: string } {
   return { label: "PENDING", colour: "#c0c0c0" };
 }
 
-const APP_URL =
-  process.env.NEXTAUTH_URL ?? "https://ascend-drab-one.vercel.app";
+const APP_URL = "https://members.ascendescapeaverage.com";
 
 export default async function DashboardPage() {
   const session = await auth();

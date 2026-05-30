@@ -22,10 +22,10 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // If we're inside a Shopify iframe, we can't set cookies.
-    // Break out to the full Vercel login page and let the user log in there.
+    // If we're inside a Shopify iframe, cookies are blocked (third-party).
+    // Break out to the full-page login on the same subdomain so cookies work.
     if (inIframe) {
-      window.top!.location.href = "https://ascend-drab-one.vercel.app/login";
+      window.top!.location.href = "https://members.ascendescapeaverage.com/login";
       return;
     }
 
@@ -38,7 +38,7 @@ export default function LoginPage() {
         setError(err);
         setLoading(false);
       } else {
-        // After successful login, send the user to the Shopify dashboard page.
+        // After successful login, send to the Shopify dashboard page.
         window.location.href = "https://ascendescapeaverage.com/pages/dashboard";
       }
     } catch {
@@ -51,7 +51,6 @@ export default function LoginPage() {
       <div className="w-full flex items-center justify-between px-6 py-3 border-b border-[#2a2a2a]">
         <a
           href="https://ascendescapeaverage.com"
-          target="_top"
           className="text-xs tracking-[0.4em] uppercase text-[#808080] font-medium hover:text-[#e8e8e3] transition-colors duration-200"
         >
           Ascend
@@ -122,7 +121,6 @@ export default function LoginPage() {
             Not a member?{" "}
             <a
               href="https://ascendescapeaverage.com"
-              target="_top"
               className="text-[#808080] hover:text-[#e8e8e3] transition-colors duration-200"
             >
               Join Ascend
