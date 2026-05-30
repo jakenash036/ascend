@@ -12,18 +12,18 @@ export async function GET(req: NextRequest) {
 
   // Validate state / CSRF
   if (!code || !state || !cookieValue) {
-    return NextResponse.redirect(new URL("/dashboard?error=discord_link_failed", req.url));
+    return NextResponse.redirect("https://ascendescapeaverage.com/pages/dashboard?error=discord_link_failed");
   }
 
   const [userId, nonce] = cookieValue.split("|");
   if (!userId || !nonce || nonce !== state) {
-    return NextResponse.redirect(new URL("/dashboard?error=discord_link_failed", req.url));
+    return NextResponse.redirect("https://ascendescapeaverage.com/pages/dashboard?error=discord_link_failed");
   }
 
   const clientId = process.env.DISCORD_CLIENT_ID;
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(new URL("/dashboard?error=discord_not_configured", req.url));
+    return NextResponse.redirect("https://ascendescapeaverage.com/pages/dashboard?error=discord_not_configured");
   }
 
   const baseUrl = process.env.NEXTAUTH_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
@@ -74,13 +74,13 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("Discord OAuth callback error:", err);
     const response = NextResponse.redirect(
-      new URL("/dashboard?error=discord_link_failed", req.url)
+      "https://ascendescapeaverage.com/pages/dashboard?error=discord_link_failed"
     );
     response.cookies.delete("discord_link");
     return response;
   }
 
-  const response = NextResponse.redirect(new URL("/dashboard", req.url));
+  const response = NextResponse.redirect("https://ascendescapeaverage.com/pages/dashboard");
   response.cookies.delete("discord_link");
   return response;
 }
