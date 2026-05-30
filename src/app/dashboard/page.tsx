@@ -34,6 +34,8 @@ function statusLabel(status: string): { label: string; colour: string } {
   return { label: "PENDING", colour: "#c0c0c0" };
 }
 
+const APP_URL = process.env.NEXTAUTH_URL ?? "https://ascend-drab-one.vercel.app";
+
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -146,7 +148,7 @@ export default async function DashboardPage() {
                   </span>
                 )}
               </div>
-              {user.discord && (
+              {user.discord_id && user.discord && (
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[#808080] tracking-wide">Username</span>
                   <span className="text-xs text-[#e8e8e3] tracking-wide">
@@ -156,8 +158,8 @@ export default async function DashboardPage() {
               )}
               {!user.discord_id && (
                 <a
-                  href="/api/discord/link"
-                  className="mt-2 w-full px-4 py-3 border border-[#2a2a2a] hover:border-[#c0c0c0] text-[#c0c0c0] hover:text-[#e8e8e3] text-xs font-semibold tracking-widest uppercase text-center transition-colors duration-200 block"
+                  href={`${APP_URL}/api/discord/link`}
+                  className="mt-2 w-full px-4 py-3 border border-[#2a2a2a] hover:border-[#c0c0c0] text-[#c0c0c0] hover:text-[#e8e8e3] text-xs font-semibold tracking-widest uppercase text-center transition-colors duration-200"
                 >
                   Link Discord
                 </a>
