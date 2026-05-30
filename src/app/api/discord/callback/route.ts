@@ -3,20 +3,17 @@ import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-async function addToGuildAndAssignRole(
-  discordUserId: string,
-  accessToken: string
-): Promise<void> {
+async function addToGuild(discordUserId: string, accessToken: string): Promise<void> {
   const botToken = process.env.DISCORD_BOT_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
-  const roleId = process.env.DISCORD_ROLE_ID;
 
-  if (!botToken || !guildId || !roleId) {
-    console.warn("Discord bot env vars not set — skipping guild add");
+  if (!botToken || !guildId) {
+    console.warn("[Discord] Missing DISCORD_BOT_TOKEN or DISCORD_GUILD_ID");
     return;
   }
 
-  // PUT /guilds/{guildId}/members/{userId} — adds to server AND assigns role in one call
+  console.log(`[Discord] Adding user ${discordUserId} to guild ${guildId}`);
+
   const res = await fetch(
     `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}`,
     {
@@ -25,36 +22,49 @@ async function addToGuildAndAssignRole(
         Authorization: `Bot ${botToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        access_token: accessToken,
-        roles: [roleId],
-      }),
+      body: JSON.stringify({ access_token: accessToken }),
     }
   );
 
-  // 201 = added to server, 204 = already a member (role still applied)
-  if (!res.ok && res.status !== 201 && res.status !== 204) {
+  const status = res.status;
+  if (status === 201) {
+    console.log(`[Discord] User ${discordUserId} successfully added to guild`);
+  } else if (status === 204) {
+    console.log(`[Discord] User ${discordUserId} was already in the guild`);
+  } else {
     const body = await res.text();
-    console.error("Failed to add user to Discord guild:", res.status, body);
+    console.error(`[Discord] Failed to add user to guild: ${status}`, body);
+  }
+}
+
+async function assignRole(discordUserId: string): Promise<void> {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const roleId = process.env.DISCORD_ROLE_ID;
+
+  if (!botToken || !guildId || !roleId) {
+    console.warn(`[Discord] Missing env vars — BOT_TOKEN:${!!botToken} GUILD_ID:${!!guildId} ROLE_ID:${!!roleId}`);
+    return;
   }
 
-  // If they were already in the server (204), the PUT above won't update roles
-  // so explicitly assign the role as a fallback
-  if (res.status === 204) {
-    const roleRes = await fetch(
-      `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bot ${botToken}`,
-          "Content-Length": "0",
-        },
-      }
-    );
-    if (!roleRes.ok && roleRes.status !== 204) {
-      const body = await roleRes.text();
-      console.error("Failed to assign Discord role:", roleRes.status, body);
+  console.log(`[Discord] Assigning role ${roleId} to user ${discordUserId} in guild ${guildId}`);
+
+  const res = await fetch(
+    `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bot ${botToken}`,
+        "Content-Length": "0",
+      },
     }
+  );
+
+  if (res.ok || res.status === 204) {
+    console.log(`[Discord] Role ${roleId} assigned to user ${discordUserId}`);
+  } else {
+    const body = await res.text();
+    console.error(`[Discord] Failed to assign role: ${res.status}`, body);
   }
 }
 
@@ -110,6 +120,8 @@ export async function GET(req: NextRequest) {
       discriminator?: string;
     };
 
+    console.log(`[Discord] Linked user ${userId} to Discord account ${discordUser.id} (${discordUser.username})`);
+
     const discordUsername =
       discordUser.discriminator && discordUser.discriminator !== "0"
         ? `${discordUser.username}#${discordUser.discriminator}`
@@ -123,10 +135,14 @@ export async function GET(req: NextRequest) {
       WHERE id = ${userId}
     `;
 
-    // Add to server AND assign role in one call
-    await addToGuildAndAssignRole(discordUser.id, tokenData.access_token);
+    // Step 1: Add to guild
+    await addToGuild(discordUser.id, tokenData.access_token);
+
+    // Step 2: Assign role (separate call for clarity)
+    await assignRole(discordUser.id);
+
   } catch (err) {
-    console.error("Discord OAuth callback error:", err);
+    console.error("[Discord] OAuth callback error:", err);
     const response = NextResponse.redirect(
       "https://ascendescapeaverage.com/pages/dashboard?error=discord_link_failed"
     );
