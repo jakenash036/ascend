@@ -3,9 +3,6 @@
 import { useState } from "react";
 import { loginAction } from "./actions";
 
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://ascend-drab-one.vercel.app";
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,9 +20,9 @@ export default function LoginPage() {
         setError(err);
         setLoading(false);
       } else {
-        // Navigate the top-level window to the dashboard.
-        // If we're inside a Shopify iframe this breaks out of it.
-        const dest = `${APP_URL}/dashboard`;
+        // After login, navigate the top window back to the Shopify homepage.
+        // The iframe will reload and show the dashboard since the session cookie is now set.
+        const dest = "https://ascendescapeaverage.com";
         if (typeof window !== "undefined") {
           if (window.top && window.top !== window) {
             window.top.location.href = dest;
@@ -43,7 +40,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
       <div className="w-full flex items-center justify-between px-6 py-3 border-b border-[#2a2a2a]">
         <a
-          href="/"
+          href="https://ascendescapeaverage.com"
           className="text-xs tracking-[0.4em] uppercase text-[#808080] font-medium hover:text-[#e8e8e3] transition-colors duration-200"
         >
           Ascend
