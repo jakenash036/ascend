@@ -22,23 +22,31 @@ export default function WhatAscendIs() {
           <div className="chrome-line w-16 mx-auto mt-8" aria-hidden="true" />
         </div>
 
-        <p className="text-[#7a7a7a] text-base sm:text-lg leading-relaxed text-center max-w-2xl mx-auto mb-16">
+        <p className="text-[#7a7a7a] text-base sm:text-lg leading-relaxed text-center max-w-2xl mx-auto mb-6">
+          The mechanics behind modern success — not a shortcut, a system.
+        </p>
+
+        <p className="text-[#7a7a7a] text-sm sm:text-base leading-relaxed text-center max-w-2xl mx-auto mb-16">
           Ascend is built for people who are done consuming content and ready to
           execute. Inside you&apos;ll find frameworks, accountability, and a network of
           operators who think at a different level.
         </p>
 
-        {/* Pillars grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[#2a2a2a]">
-          {pillars.map((pillar) => (
+        <div className="flex flex-col border-y border-[#1e1e1e]">
+          {pillars.map((pillar, index) => (
             <div
               key={pillar.label}
-              className="bg-[#0a0a0a] p-8 flex flex-col gap-3 hover:bg-[#111111] transition-colors duration-200"
+              className="group border-t border-[#1e1e1e] first:border-t-0 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8"
             >
-              <span className="text-[#c0c0c0] text-xs tracking-[0.3em] uppercase font-medium">
-                {pillar.label}
-              </span>
-              <p className="text-[#7a7a7a] text-sm leading-relaxed">
+              <div className="sm:w-1/2 flex items-center gap-4">
+                <span className="text-[#2a2a2a] font-mono text-sm sm:text-base group-hover:text-[#c0c0c0] transition-colors duration-300">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="text-[#c0c0c0] text-xs tracking-[0.3em] uppercase font-medium">
+                  {pillar.label}
+                </span>
+              </div>
+              <p className="sm:w-1/2 text-[#7a7a7a] text-sm leading-relaxed">
                 {pillar.description}
               </p>
             </div>

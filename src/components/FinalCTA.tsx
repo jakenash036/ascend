@@ -28,7 +28,23 @@ export default function FinalCTA({ onJoin }: FinalCTAProps) {
           relentless ambition.
         </p>
 
-        <CTAButton className="mt-2" onClick={onJoin} />
+        <div className="relative mt-2 flex flex-col items-center">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-10 -bottom-2 h-10 bg-[#c0c0c0]/10 blur-2xl animate-pulse"
+          />
+          <CTAButton className="relative z-10" onClick={onJoin} />
+        </div>
+
+        <div className="flex flex-col items-center gap-2 text-[#404040] text-xs tracking-widest uppercase">
+          <p>Private · Members Only</p>
+          <p>Cancel Anytime</p>
+          <p>Instant Discord Access</p>
+        </div>
+
+        <p className="text-[#2a2a2a] text-xs tracking-[0.6em] uppercase">
+          Ascend. Escape Average.
+        </p>
 
         <div className="chrome-line w-16" aria-hidden="true" />
       </div>

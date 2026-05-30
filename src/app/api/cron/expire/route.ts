@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const sql = getDb();
 
     // Find users whose most recent subscription has expired but are still marked active
-    const expired = await sql<{ user_id: number; discord_id: string | null; sub_id: number }[]>`
+    const expired = await sql`
       SELECT u.id AS user_id, u.discord_id, s.id AS sub_id
       FROM users u
       JOIN subscriptions s ON s.user_id = u.id
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
           ORDER BY created_at DESC
           LIMIT 1
         )
-    `;
+    ` as { user_id: number; discord_id: string | null; sub_id: number }[];
 
     console.log(`[Cron] Found ${expired.length} expired subscription(s)`);
 

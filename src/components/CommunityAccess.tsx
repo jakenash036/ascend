@@ -31,34 +31,34 @@ export default function CommunityAccess() {
             Community
           </p>
           <h2 className="text-3xl sm:text-4xl font-semibold text-[#e8e8e3] tracking-tight">
-            Community Access
+            The Network
           </h2>
           <div className="chrome-line w-16 mx-auto mt-8" aria-hidden="true" />
           <p className="mt-8 text-[#7a7a7a] text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
-            Membership includes access to a Discord-based private community —
-            built for operators who move with purpose.
+            This isn&apos;t a Discord server. It&apos;s a private network for people who operate differently.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[#2a2a2a]">
+        <div className="flex flex-col border-b border-[#1e1e1e]">
           {perks.map((perk) => (
             <div
               key={perk.title}
-              className="bg-[#0a0a0a] p-8 hover:bg-[#0f0f0f] transition-colors duration-200"
+              className="group border-t border-[#1e1e1e] py-6 sm:py-7 flex items-start justify-between gap-6"
             >
-              <div className="flex items-start gap-3 mb-4">
-                {/* Chrome accent dot */}
-                <span
-                  aria-hidden="true"
-                  className="mt-1.5 shrink-0 block w-1.5 h-1.5 rounded-full bg-[#c0c0c0]"
-                />
-                <h3 className="text-[#e8e8e3] font-semibold text-base tracking-tight">
+              <div>
+                <h3 className="text-[#e8e8e3] font-semibold tracking-tight text-base sm:text-lg">
                   {perk.title}
                 </h3>
+                <p className="mt-2 text-[#7a7a7a] text-sm leading-relaxed">
+                  {perk.description}
+                </p>
               </div>
-              <p className="text-[#7a7a7a] text-sm leading-relaxed pl-4">
-                {perk.description}
-              </p>
+              <span
+                aria-hidden="true"
+                className="text-[#c0c0c0] text-sm sm:text-base opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              >
+                ●
+              </span>
             </div>
           ))}
         </div>
