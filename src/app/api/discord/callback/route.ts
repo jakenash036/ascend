@@ -3,30 +3,58 @@ import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-async function assignDiscordRole(discordUserId: string): Promise<void> {
+async function addToGuildAndAssignRole(
+  discordUserId: string,
+  accessToken: string
+): Promise<void> {
   const botToken = process.env.DISCORD_BOT_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
   const roleId = process.env.DISCORD_ROLE_ID;
 
   if (!botToken || !guildId || !roleId) {
-    console.warn("Discord bot env vars not set — skipping role assignment");
+    console.warn("Discord bot env vars not set — skipping guild add");
     return;
   }
 
+  // PUT /guilds/{guildId}/members/{userId} — adds to server AND assigns role in one call
   const res = await fetch(
-    `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+    `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}`,
     {
       method: "PUT",
       headers: {
         Authorization: `Bot ${botToken}`,
-        "Content-Length": "0",
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        access_token: accessToken,
+        roles: [roleId],
+      }),
     }
   );
 
-  if (!res.ok && res.status !== 204) {
+  // 201 = added to server, 204 = already a member (role still applied)
+  if (!res.ok && res.status !== 201 && res.status !== 204) {
     const body = await res.text();
-    console.error("Failed to assign Discord role:", res.status, body);
+    console.error("Failed to add user to Discord guild:", res.status, body);
+  }
+
+  // If they were already in the server (204), the PUT above won't update roles
+  // so explicitly assign the role as a fallback
+  if (res.status === 204) {
+    const roleRes = await fetch(
+      `https://discord.com/api/v10/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bot ${botToken}`,
+          "Content-Length": "0",
+        },
+      }
+    );
+    if (!roleRes.ok && roleRes.status !== 204) {
+      const body = await roleRes.text();
+      console.error("Failed to assign Discord role:", roleRes.status, body);
+    }
   }
 }
 
@@ -95,8 +123,8 @@ export async function GET(req: NextRequest) {
       WHERE id = ${userId}
     `;
 
-    // Assign member role in Discord server
-    await assignDiscordRole(discordUser.id);
+    // Add to server AND assign role in one call
+    await addToGuildAndAssignRole(discordUser.id, tokenData.access_token);
   } catch (err) {
     console.error("Discord OAuth callback error:", err);
     const response = NextResponse.redirect(

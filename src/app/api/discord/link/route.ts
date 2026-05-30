@@ -25,7 +25,7 @@ export const GET = auth(async function GET(req) {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "identify",
+    scope: "identify guilds.join",
     state: nonce,
   });
 
@@ -37,7 +37,7 @@ export const GET = auth(async function GET(req) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 300, // 5 minutes
+    maxAge: 300,
     path: "/",
   });
 
