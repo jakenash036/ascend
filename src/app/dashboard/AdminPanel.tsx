@@ -46,29 +46,40 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function AdminPanel() {
   const [members, setMembers] = useState<Member[]>([]);
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const loadMembers = useCallback(async (q: string) => {
+    const url = q
+      ? `/api/admin/members?search=${encodeURIComponent(q)}`
+      : "/api/admin/members";
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return (await res.json()) as Member[];
+  }, []);
+
   const fetchMembers = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const url = q
-        ? `/api/admin/members?search=${encodeURIComponent(q)}`
-        : "/api/admin/members";
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
+      const data = await loadMembers(q);
+      if (data) {
         setMembers(data);
+        if (!q) {
+          setAllMembers(data);
+        }
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadMembers]);
 
   useEffect(() => {
-    fetchMembers("");
+    void (async () => {
+      await fetchMembers("");
+    })();
   }, [fetchMembers]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +99,25 @@ export default function AdminPanel() {
       body: JSON.stringify({ action }),
     });
     setConfirmDelete(null);
-    fetchMembers(search);
+    if (search) {
+      setLoading(true);
+      try {
+        const [filteredMembers, fullMembers] = await Promise.all([
+          loadMembers(search),
+          loadMembers(""),
+        ]);
+        if (filteredMembers) {
+          setMembers(filteredMembers);
+        }
+        if (fullMembers) {
+          setAllMembers(fullMembers);
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    await fetchMembers("");
   };
 
   const total = members.length;
@@ -103,7 +132,9 @@ export default function AdminPanel() {
     const d = new Date(m.created_at);
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   }).length;
-  const mrr = (monthlyActive * 19.99) + (yearlyActive * 179.99 / 12);
+  const mrrMonthlyActive = allMembers.filter((m) => m.plan === "monthly" && m.status === "active").length;
+  const mrrYearlyActive = allMembers.filter((m) => m.plan === "yearly" && m.status === "active").length;
+  const mrr = (mrrMonthlyActive * 19.99) + (mrrYearlyActive * 179.99 / 12);
 
   return (
     <div>
