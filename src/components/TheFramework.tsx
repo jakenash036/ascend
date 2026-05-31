@@ -9,7 +9,7 @@ const modules = [
     number: "02",
     title: "Leverage",
     description:
-      "Capital, code, media, and people. Learn to multiply your time and effort using the four levers that separate operators from employees.",
+      "Recurring revenue, audience ownership, automation and scalable systems. Understand how modern leverage separates operators from people permanently trading time for money.",
   },
   {
     number: "03",
@@ -33,7 +33,7 @@ const modules = [
     number: "06",
     title: "Ascension",
     description:
-      "The integration. Apply every module into a cohesive operating system for your life and business — then keep climbing.",
+      "Maintain momentum, protect your discipline and refuse to return to average. Ascension isn't a destination — it's a permanent standard of operation.",
   },
 ];
 
