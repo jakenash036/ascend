@@ -4,6 +4,53 @@ import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+async function assignDiscordRole(discordId: string): Promise<void> {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const roleId = process.env.DISCORD_ROLE_ID;
+  if (!botToken || !guildId || !roleId || !discordId) return;
+
+  const res = await fetch(
+    `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bot ${botToken}`,
+        "Content-Length": "0",
+      },
+    }
+  );
+
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text();
+    console.error("[Admin] Failed to assign Discord role:", res.status, body);
+  } else {
+    console.log(`[Admin] Assigned Discord role to ${discordId}`);
+  }
+}
+
+async function removeDiscordRole(discordId: string): Promise<void> {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const roleId = process.env.DISCORD_ROLE_ID;
+  if (!botToken || !guildId || !roleId || !discordId) return;
+
+  const res = await fetch(
+    `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}/roles/${roleId}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bot ${botToken}` },
+    }
+  );
+
+  if (!res.ok && res.status !== 204) {
+    const body = await res.text();
+    console.error("[Admin] Failed to remove Discord role:", res.status, body);
+  } else {
+    console.log(`[Admin] Removed Discord role from ${discordId}`);
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -44,6 +91,9 @@ export async function POST(
         WHERE id = ${sub.id}
       `;
     }
+    const userRow = await sql`SELECT discord_id FROM users WHERE id = ${userId}`;
+    const discordId = userRow[0]?.discord_id as string | null;
+    if (discordId) await assignDiscordRole(discordId);
     return NextResponse.json({ ok: true });
   }
 
@@ -56,6 +106,9 @@ export async function POST(
         ORDER BY created_at DESC LIMIT 1
       )
     `;
+    const userRow = await sql`SELECT discord_id FROM users WHERE id = ${userId}`;
+    const discordId = userRow[0]?.discord_id as string | null;
+    if (discordId) await removeDiscordRole(discordId);
     return NextResponse.json({ ok: true });
   }
 
@@ -68,6 +121,9 @@ export async function POST(
         ORDER BY created_at DESC LIMIT 1
       )
     `;
+    const userRow = await sql`SELECT discord_id FROM users WHERE id = ${userId}`;
+    const discordId = userRow[0]?.discord_id as string | null;
+    if (discordId) await removeDiscordRole(discordId);
     return NextResponse.json({ ok: true });
   }
 
